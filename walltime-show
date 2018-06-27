@@ -1,0 +1,59 @@
+#!/usr/bin/env node
+
+'use strict';
+const program = require('commander');
+
+if (typeof localStorage === "undefined" || localStorage === null) {
+    var LocalStorage = require('node-localstorage').LocalStorage;
+    var localStorage = new LocalStorage('./db');
+}
+
+var btc = require('bitcore-lib');
+var bip38 = require('bip38');
+var wif = require('wif');
+var ee = require('easy-encryption');
+
+program
+    .option('-t, --testnet', 'use testnet')
+    .option('-j, --json', 'return in json format')
+    .parse(process.argv);
+
+var password = process.env.WT_SECRET;
+
+if (!password) {
+    if (program.json) {
+        console.log(JSON.stringify({'error' : true}));
+    } else {
+        console.error('Set WT_SECRET env variable and we can decrypt your credentials.');
+    }
+} else {
+    var network;
+
+    if (program.testnet) {
+        network = btc.Networks.testnet;
+    } else {
+        network = btc.Networks.livenet;
+    }
+
+    if (!localStorage.getItem(network + '.pub')) {
+        if (program.json) {
+            console.log(JSON.stringify({'error': true}));
+        } else {
+            console.error('You don\'t have credentials yet. Create one using init command.');
+        }
+    } else {
+        if (!program.json) {
+            console.log('');
+            console.log('Address:', '\n' + ee.decrypt(password, localStorage.getItem(network + '.pub')));
+            console.log('\nBIP-38 encryted private key:', '\n' + ee.decrypt(password,
+                    localStorage.getItem(network + '.sec')));
+
+            console.log('');
+        } else {
+            var result = {};
+            result['address'] = localStorage.getItem(network + '.pub');
+            result['bip38_privkey'] = localStorage.getItem(network + '.sec');
+            console.log(JSON.stringify(result));
+        }
+    }
+}

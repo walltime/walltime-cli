@@ -1,0 +1,28 @@
+#!/usr/bin/env node
+
+'use strict';
+const program = require('commander');
+
+program
+    .version('1.0.0')
+    .description('Walltime CLI is the Walltime Digital Assets Exchange Command Line Interface. With this app, you can easily retrieve market info and manipulate your account.')
+    .command('init', 'Build new credentials. Used only in the very FIRST time. The credentials are kept saved on disk.')
+    .command('show', 'Show your credentials (useful for backup).')
+    .command('restore <privkey>',
+            'Restore credentials from backup using a WIF unencrypted private key.')
+    .command('info', 'Retrieve general market info.')
+    .command('newaddress', 'Generate a new Bitcoin deposit address.')
+    .on('--help', function() {
+        console.log('');
+        console.log('To be able to use some commands, you have to set the system environment variable WT_SECRET to a secret that will be used to encrypt your credentials on disk. To keep it safe, it is recommended to clear this variable later.');
+        console.log('');
+        console.log('On Linux, use:');
+        console.log('');
+        console.log('export WT_SECRET=<yoursecret>');
+        console.log('');
+        console.log('On Windows, use:');
+        console.log('');
+        console.log('set WT_SECRET=<yoursecret>');
+        console.log('');
+    })
+    .parse(process.argv);

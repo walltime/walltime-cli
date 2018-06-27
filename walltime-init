@@ -1,0 +1,100 @@
+#!/usr/bin/env node
+
+'use strict';
+const program = require('commander');
+
+if (typeof localStorage === "undefined" || localStorage === null) {
+    var LocalStorage = require('node-localstorage').LocalStorage;
+    var localStorage = new LocalStorage('./db');
+}
+
+var btc = require('bitcore-lib');
+var bip38 = require('bip38');
+var wif = require('wif');
+var ee = require('easy-encryption');
+
+program
+    .option('-t, --testnet', 'create a testnet credential')
+    .option('-j, --json', 'return in json format')
+    .option('-f, --force', 'force regenerate (overwrite) credentials (CAUTION!)')
+    .option('-P, --privkey', 'show unencrypted private key on screen (CAUTION!)')
+    .parse(process.argv);
+
+var password = process.env.WT_SECRET;
+
+if (!password) {
+    if (program.json) {
+        console.log(JSON.stringify({'error' : true}));
+    } else {
+        console.error('Please, set the WT_SECRET env variable. It is required to encrypt your credentials on disk.');
+    }
+} else {
+    var network;
+
+    if (program.testnet) {
+        network = btc.Networks.testnet;
+    } else {
+        network = btc.Networks.livenet;
+    }
+
+    if (localStorage.getItem(network + '.pub') && !program.force) {
+        if (program.json) {
+            console.log(JSON.stringify({'error': true}));
+        } else {
+            console.error('You already have stored credentials. Use -f to force overwrite.');
+        }
+    } else {
+        if (localStorage.getItem(network + '.pub') && !program.json) {
+            console.warn('[WARN] The credentials will be overwritten!');
+        }
+
+        if (!program.json) {
+            console.log('Generating your credentials...');
+        }
+
+        var privateKey = new btc.PrivateKey();
+        var address = privateKey.toAddress(network);
+
+        const privateKeyDecoded = wif.decode(privateKey.toWIF());
+        var privateKeyEncrypted = bip38.encrypt(
+            privateKeyDecoded.privateKey, privateKeyDecoded.compressed, password);
+
+        if (!program.json) {
+            console.log('');
+            console.log('Done! Now, please inform the following address to our 24h support in https://m.me/walltime.info and identify yourself.');
+            console.log('==========================================');
+            console.log(address.toString());
+            console.log('==========================================');
+            console.log('');
+            console.log('Please, backup your BIP-38 encrypted private key:');
+            console.log('==========================================');
+            console.log(privateKeyEncrypted);
+            console.log('==========================================');
+            console.log('Don\'t forget to write down your $WT_SECRET as well.');
+            console.log('');
+
+            if (program.privkey) {
+                console.log('As requested, follow your unencrypted private key, BE CAREFUL:');
+                console.log('==========================================');
+                console.log(privateKey.toWIF());
+                console.log('==========================================');
+                console.log('');
+            }
+        }
+
+        if (program.json) {
+            var result = {};
+            result['address'] = address.toString();
+
+            if (program.privkey) {
+                result['open_privkey'] = privateKey.toWIF();
+            }
+
+            result['bip38_privkey'] = privateKeyEncrypted;
+            console.log(JSON.stringify(result));
+        }
+
+        localStorage.setItem(network + '.pub', ee.encrypt(password, address.toString()));
+        localStorage.setItem(network + '.sec', ee.encrypt(password, privateKeyEncrypted));
+    }
+}
