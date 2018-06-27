@@ -1,0 +1,2 @@
+* Walltime CLI - Walltime Command Line.
+Type ~walltime help~ to see help.

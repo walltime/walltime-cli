@@ -1,0 +1,19 @@
+# backup files
+*~
+.~*
+#*
+*/#*
+**/#*
+**/.#*
+*.bak
+
+# system files
+.DS_Store
+
+# project files
+workspace.xml
+out/
+workspace.xml___jb_bak___
+
+
+
