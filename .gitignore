@@ -15,5 +15,5 @@ workspace.xml
 out/
 workspace.xml___jb_bak___
 
-
-
+# runtime
+db/
