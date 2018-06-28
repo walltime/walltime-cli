@@ -19,11 +19,11 @@ program
         console.log('');
         console.log('On Linux, use:');
         console.log('');
-        console.log('export WT_SECRET=<yoursecret>');
+        console.log('\texport WT_SECRET=<yoursecret>');
         console.log('');
         console.log('On Windows, use:');
         console.log('');
-        console.log('set WT_SECRET=<yoursecret>');
+        console.log('\tset WT_SECRET=<yoursecret>');
         console.log('');
     })
     .parse(process.argv);
