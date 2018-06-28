@@ -11,6 +11,7 @@ program
     .command('show', 'Show your credentials (useful for backup).')
     .command('restore <privkey>',
             'Restore credentials from backup using a WIF unencrypted private key.')
+    .command('follow <nonce>', 'Wait an answer in the nonce.')
     .command('info', 'Retrieve general market info.')
     .command('newaddress [bech32] [currency]', 'Generate a new Bitcoin deposit address.')
     .on('--help', function() {
