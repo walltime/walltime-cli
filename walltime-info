@@ -8,7 +8,7 @@ const axios = require('axios');
 
 program
     .option('-t, --testnet', 'use testnet')
-    .option('-v, --verbose', 'show the request')
+    .option('-v, --verbose', 'verbose mode')
     .parse(process.argv);
 
 var tokenToAvoidCache = crypto.randomBytes(32).toString('hex');
