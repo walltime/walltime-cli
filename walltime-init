@@ -8,10 +8,10 @@ if (typeof localStorage === "undefined" || localStorage === null) {
     var localStorage = new LocalStorage('./db');
 }
 
-var btc = require('bitcore-lib');
-var bip38 = require('bip38');
-var wif = require('wif');
-var ee = require('easy-encryption');
+const btc = require('bitcore-lib');
+const bip38 = require('bip38');
+const wif = require('wif');
+const ee = require('easy-encryption');
 
 program
     .option('-t, --testnet', 'create a testnet credential')
