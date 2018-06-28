@@ -87,7 +87,7 @@ if (!password) {
             result['address'] = address.toString();
 
             if (program.privkey) {
-                result['open_privkey'] = privateKey.toWIF();
+                result['privkey'] = privateKey.toWIF();
             }
 
             result['bip38_privkey'] = privateKeyEncrypted;
