@@ -104,7 +104,7 @@ if (program.args.length > 2) {
                 console.log('*** INTERRUPTED! You can try to get the reply anytime:');
                 console.log('**********');
                 console.log('============================');
-                console.log('walltime follow ' + nonce);
+                console.log('walltime follow ' + (program.testnet ? '-t ' : '') + nonce);
                 console.log('============================');
                 process.exit();
             });
