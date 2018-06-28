@@ -7,6 +7,7 @@ program
     .version('1.0.0')
     .description('Walltime CLI is the Walltime Digital Assets Exchange Command Line Interface. With this app, you can easily retrieve market info and manipulate your account.')
     .command('init', 'Build new credentials. Use it only in the very FIRST time. The credentials are kept saved on disk.')
+    .command('setup <useruuid>', 'After call "init" and inform the address to our support, call this with the informed UUID.')
     .command('show', 'Show your credentials (useful for backup).')
     .command('restore <privkey>',
             'Restore credentials from backup using a WIF unencrypted private key.')

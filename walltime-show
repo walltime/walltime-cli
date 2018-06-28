@@ -45,6 +45,9 @@ if (!password) {
     } else {
         var encryptedPrivKey = ee.decrypt(password, localStorage.getItem(network + '.sec'));
         var address = ee.decrypt(password, localStorage.getItem(network + '.pub'));
+        var uuid = localStorage.getItem(network + '.uuid') &&
+                ee.decrypt(password, localStorage.getItem(network + '.uuid'));
+
         var decryptedKey;
 
         if (program.privkey) {
@@ -61,6 +64,12 @@ if (!password) {
                 console.log('\nUnencrypted private key:', '\n' + decryptedKey);
             }
 
+            if (!uuid) {
+                console.log('\n*** UUID is undefined! Please, define it calling "walltime setup <uuid>".');
+            } else {
+                console.log('\nUUID:', '\n' + uuid);
+            }
+
             console.log('');
         } else {
             var result = {};
@@ -69,6 +78,10 @@ if (!password) {
 
             if (decryptedKey) {
                 result['privkey'] = decryptedKey;
+            }
+
+            if (uuid) {
+                result['uuid'] = uuid;
             }
 
             console.log(JSON.stringify(result));

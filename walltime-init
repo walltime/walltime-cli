@@ -62,6 +62,7 @@ if (!password) {
         if (!program.json) {
             console.log('');
             console.log('Done! Now, please inform the following address to our 24h support in https://m.me/walltime.info and identify yourself.');
+            console.log('*** IMPORTANT: You will receive from our support an UUID and you have to call "walltime setup <UUID>" before call some commands.');
             console.log('==========================================');
             console.log(address.toString());
             console.log('==========================================');
