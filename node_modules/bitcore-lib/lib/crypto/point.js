@@ -2,9 +2,7 @@
 
 var BN = require('./bn');
 var BufferUtil = require('../util/buffer');
-
-var EC = require('elliptic').ec;
-var ec = new EC('secp256k1');
+var ec = require('elliptic').curves.secp256k1;
 var ecPoint = ec.curve.point.bind(ec.curve);
 var ecPointFromX = ec.curve.pointFromX.bind(ec.curve);
 
@@ -21,11 +19,7 @@ var ecPointFromX = ec.curve.pointFromX.bind(ec.curve);
  * @constructor
  */
 var Point = function Point(x, y, isRed) {
-  try {
-    var point = ecPoint(x, y, isRed);
-  } catch (e) {
-    throw new Error('Invalid Point');
-  }
+  var point = ecPoint(x, y, isRed);
   point.validate();
   return point;
 };
@@ -42,11 +36,7 @@ Point.prototype = Object.getPrototypeOf(ec.curve.point());
  * @returns {Point} An instance of Point
  */
 Point.fromX = function fromX(odd, x){
-  try {
-    var point = ecPointFromX(x, odd);
-  } catch (e) {
-    throw new Error('Invalid X');
-  }
+  var point = ecPointFromX(odd, x);
   point.validate();
   return point;
 };
@@ -112,17 +102,22 @@ Point.prototype.validate = function validate() {
     throw new Error('Point cannot be equal to Infinity');
   }
 
-  var p2;
-  try {
-    p2 = ecPointFromX(this.getX(), this.getY().isOdd());
-  } catch (e) {
-    throw new Error('Point does not lie on the curve');
+  if (this.getX().cmp(BN.Zero) === 0 || this.getY().cmp(BN.Zero) === 0){
+    throw new Error('Invalid x,y value for curve, cannot equal 0.');
   }
+
+  var p2 = ecPointFromX(this.getY().isOdd(), this.getX());
 
   if (p2.y.cmp(this.y) !== 0) {
     throw new Error('Invalid y value for curve.');
   }
 
+  var xValidRange = (this.getX().gt(BN.Minus1) && this.getX().lt(Point.getN()));
+  var yValidRange = (this.getY().gt(BN.Minus1) && this.getY().lt(Point.getN()));
+
+  if ( !xValidRange || !yValidRange ) {
+    throw new Error('Point does not lie on the curve');
+  }
 
   //todo: needs test case
   if (!(this.mul(Point.getN()).isInfinity())) {

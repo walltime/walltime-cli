@@ -8,6 +8,7 @@ var Base58 = require('./encoding/base58');
 var Base58Check = require('./encoding/base58check');
 var Hash = require('./crypto/hash');
 var HDPrivateKey = require('./hdprivatekey');
+var HDKeyCache = require('./hdkeycache');
 var Network = require('./networks');
 var Point = require('./crypto/point');
 var PublicKey = require('./publickey');
@@ -75,7 +76,7 @@ function HDPublicKey(arg) {
 HDPublicKey.isValidPath = function(arg) {
   if (_.isString(arg)) {
     var indexes = HDPrivateKey._getDerivationIndexes(arg);
-    return indexes !== null && _.every(indexes, HDPublicKey.isValidPath);
+    return indexes !== null && _.all(indexes, HDPublicKey.isValidPath);
   }
 
   if (_.isNumber(arg)) {
@@ -86,9 +87,6 @@ HDPublicKey.isValidPath = function(arg) {
 };
 
 /**
- * WARNING: This method is deprecated. Use deriveChild instead.
- *
- *
  * Get a derivated child based on a string or number.
  *
  * If the first argument is a string, it's parsed as the full path of
@@ -111,35 +109,6 @@ HDPublicKey.isValidPath = function(arg) {
  * @param {string|number} arg
  */
 HDPublicKey.prototype.derive = function(arg, hardened) {
-  return this.deriveChild(arg, hardened);
-};
-
-/**
- * WARNING: This method will not be officially supported until v1.0.0.
- *
- *
- * Get a derivated child based on a string or number.
- *
- * If the first argument is a string, it's parsed as the full path of
- * derivation. Valid values for this argument include "m" (which returns the
- * same public key), "m/0/1/40/2/1000".
- *
- * Note that hardened keys can't be derived from a public extended key.
- *
- * If the first argument is a number, the child with that index will be
- * derived. See the example usage for clarification.
- *
- * @example
- * ```javascript
- * var parent = new HDPublicKey('xpub...');
- * var child_0_1_2 = parent.deriveChild(0).deriveChild(1).deriveChild(2);
- * var copy_of_child_0_1_2 = parent.deriveChild("m/0/1/2");
- * assert(child_0_1_2.xprivkey === copy_of_child_0_1_2);
- * ```
- *
- * @param {string|number} arg
- */
-HDPublicKey.prototype.deriveChild = function(arg, hardened) {
   if (_.isNumber(arg)) {
     return this._deriveWithNumber(arg, hardened);
   } else if (_.isString(arg)) {
@@ -156,6 +125,10 @@ HDPublicKey.prototype._deriveWithNumber = function(index, hardened) {
   if (index < 0) {
     throw new hdErrors.InvalidPath(index);
   }
+  var cached = HDKeyCache.get(this.xpubkey, index, false);
+  if (cached) {
+    return cached;
+  }
 
   var indexBuffer = BufferUtil.integerAsBuffer(index);
   var data = BufferUtil.concat([this.publicKey.toBuffer(), indexBuffer]);
@@ -163,12 +136,7 @@ HDPublicKey.prototype._deriveWithNumber = function(index, hardened) {
   var leftPart = BN.fromBuffer(hash.slice(0, 32), {size: 32});
   var chainCode = hash.slice(32, 64);
 
-  var publicKey;
-  try {
-    publicKey = PublicKey.fromPoint(Point.getG().mul(leftPart).add(this.publicKey.point));
-  } catch (e) {
-    return this._deriveWithNumber(index + 1);
-  }
+  var publicKey = PublicKey.fromPoint(Point.getG().mul(leftPart).add(this.publicKey.point));
 
   var derived = new HDPublicKey({
     network: this.network,
@@ -178,13 +146,13 @@ HDPublicKey.prototype._deriveWithNumber = function(index, hardened) {
     chainCode: chainCode,
     publicKey: publicKey
   });
-
+  HDKeyCache.set(this.xpubkey, index, false, derived);
   return derived;
 };
 
 HDPublicKey.prototype._deriveFromString = function(path) {
   /* jshint maxcomplexity: 8 */
-  if (_.includes(path, "'")) {
+  if (_.contains(path, "'")) {
     throw new hdErrors.InvalidIndexCantDeriveHardened();
   } else if (!HDPublicKey.isValidPath(path)) {
     throw new hdErrors.InvalidPath(path);
