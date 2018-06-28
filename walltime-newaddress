@@ -1,0 +1,161 @@
+#!/usr/bin/env node
+
+'use strict';
+const program = require('commander');
+
+if (typeof localStorage === "undefined" || localStorage === null) {
+    var LocalStorage = require('node-localstorage').LocalStorage;
+    var localStorage = new LocalStorage('./db');
+}
+
+const Message = require('bitcore-message');
+const btc = require('bitcore-lib');
+const bip38 = require('bip38');
+const wif = require('wif');
+const axios = require('axios');
+const ee = require('easy-encryption');
+const common = require('./common');
+const crypto = require('crypto');
+
+program
+    .option('-t, --testnet', 'use testnet')
+    .option('-j, --json', 'return in json format')
+    .option('-v, --verbose', 'verbose mode')
+    .parse(process.argv);
+
+var password = process.env.WT_SECRET;
+
+if (program.args.length > 2) {
+    if (program.json) {
+        console.log(JSON.stringify({'error': true}));
+    } else {
+        console.error('Invalid number of arguments.');
+    }
+} else {
+    var bech32 = program.args.pop();
+    var currency = program.args.pop();
+
+    bech32 = !(bech32 === 'false') && !!bech32;
+
+    if (!currency) {
+        currency = 'xbt';
+    }
+
+    if (!password) {
+        if (program.json) {
+            console.log(JSON.stringify({'error': true}));
+        } else {
+            console.error('Please, set the WT_SECRET env variable.');
+        }
+    } else {
+        var network;
+
+        if (program.testnet) {
+            network = btc.Networks.testnet;
+        } else {
+            network = btc.Networks.livenet;
+        }
+
+        var uuid = localStorage.getItem(network + '.uuid') &&
+            ee.decrypt(password, localStorage.getItem(network + '.uuid'));
+
+        if (!localStorage.getItem(network + '.pub')) {
+            if (program.json) {
+                console.log(JSON.stringify({'error': true}));
+            } else {
+                console.error('You don\'t have credentials yet. Create one using init command.');
+            }
+        } else if (!uuid) {
+            if (program.json) {
+                console.log(JSON.stringify({'error': true}));
+            } else {
+                console.error('You didn\'t setup your UUID yet. Call "walltime setup <uuid>".');
+            }
+        } else {
+            if (program.verbose) {
+                console.log('Decrypting your credentials...');
+            }
+
+            var address = ee.decrypt(password, localStorage.getItem(network + '.pub'));
+            var encryptedPrivKey = ee.decrypt(password, localStorage.getItem(network + '.sec'));
+            var decryptedKey = bip38.decrypt(encryptedPrivKey, password);
+            decryptedKey = wif.encode(0x80, decryptedKey.privateKey, decryptedKey.compressed);
+
+            if (program.verbose) {
+                console.log('Retrieving endpoint information...');
+            }
+
+            var errorFn = (error => {
+                if (program.verbose) {
+                    console.error('ERROR:', error);
+                }
+
+                if (program.json) {
+                    console.log(JSON.stringify({'error': true}));
+                }
+            });
+
+            var globalResult;
+            var nonce = crypto.randomBytes(64).toString('hex');
+
+            common.apiInfo(program.testnet).then(result => {
+                globalResult = result;
+
+                if (program.verbose) {
+                    console.log('Sending message to queue...');
+                }
+
+                var privateKey = new btc.PrivateKey(decryptedKey);
+                var expiration = new Date();
+
+                expiration.setSeconds(expiration.getSeconds() + common.DEFAULT_EXPIRATION_SEC);
+                var data = JSON.stringify({
+                    'expiration': expiration.toISOString(),
+                    'nonce': nonce,
+                    'version': 'v1',
+                    'command': 'generate-new-deposit-address',
+                    'user': uuid,
+                    'body': JSON.stringify({
+                        'currency': currency,
+                        'declared_amount': '1/100000000',
+                        'bech32': bech32
+                    })
+                });
+
+                var message = new Message(data);
+                var signature = message.sign(privateKey);
+
+                var body = JSON.stringify({
+                    'bitcoin-address': address,
+                    'bitcoin-signature': signature,
+                    'data': data
+                });
+
+                if (program.verbose) {
+                    console.log('Message to send:', body);
+                }
+
+                return common.insert(globalResult.queueUrl, body);
+            }).then(a => {
+                if (program.verbose) {
+                    console.log('Sent!');
+                    console.log(a);
+                    process.stdout.write('Following the rabbit');
+                }
+
+                return common.followTheRabbit(globalResult.responsePrefix + nonce, program.verbose);
+            }).then(a => {
+                if (program.verbose) {
+                    console.log();
+                }
+
+                if (program.json) {
+                    console.log(a);
+                } else {
+                    console.log(a.address);
+                }
+
+            }).catch(errorFn);
+        }
+    }
+}

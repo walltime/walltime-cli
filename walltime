@@ -12,7 +12,7 @@ program
     .command('restore <privkey>',
             'Restore credentials from backup using a WIF unencrypted private key.')
     .command('info', 'Retrieve general market info.')
-    .command('newaddress', 'Generate a new Bitcoin deposit address.')
+    .command('newaddress [bech32] [currency]', 'Generate a new Bitcoin deposit address.')
     .on('--help', function() {
         console.log('');
         console.log('To be able to use some commands, you have to set the system environment variable WT_SECRET to a secret that will be used to encrypt your credentials on disk. To keep it safe, it is recommended to clear this variable later.');
