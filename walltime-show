@@ -16,6 +16,7 @@ var ee = require('easy-encryption');
 program
     .option('-t, --testnet', 'use testnet')
     .option('-j, --json', 'return in json format')
+    .option('-P, --privkey', 'return unenctrypted private key on screen (CAUTION!)')
     .parse(process.argv);
 
 var password = process.env.WT_SECRET;
@@ -42,17 +43,34 @@ if (!password) {
             console.error('You don\'t have credentials yet. Create one using init command.');
         }
     } else {
+        var encryptedPrivKey = ee.decrypt(password, localStorage.getItem(network + '.sec'));
+        var address = ee.decrypt(password, localStorage.getItem(network + '.pub'));
+        var decryptedKey;
+
+        if (program.privkey) {
+            decryptedKey = bip38.decrypt(encryptedPrivKey, password);
+            decryptedKey = wif.encode(0x80, decryptedKey.privateKey, decryptedKey.compressed);
+        }
+
         if (!program.json) {
             console.log('');
-            console.log('Address:', '\n' + ee.decrypt(password, localStorage.getItem(network + '.pub')));
-            console.log('\nBIP-38 encryted private key:', '\n' + ee.decrypt(password,
-                    localStorage.getItem(network + '.sec')));
+            console.log('Address:', '\n' + address);
+            console.log('\nBIP-38 encrypted private key:', '\n' + encryptedPrivKey);
+
+            if (decryptedKey) {
+                console.log('\nUnencrypted private key:', '\n' + decryptedKey);
+            }
 
             console.log('');
         } else {
             var result = {};
-            result['address'] = localStorage.getItem(network + '.pub');
-            result['bip38_privkey'] = localStorage.getItem(network + '.sec');
+            result['address'] = address;
+            result['bip38_privkey'] = encryptedPrivKey;
+
+            if (decryptedKey) {
+                result['privkey'] = decryptedKey;
+            }
+
             console.log(JSON.stringify(result));
         }
     }
