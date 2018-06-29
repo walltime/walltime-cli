@@ -9,7 +9,7 @@ program
     .command('init', 'Build new credentials.')
     .command('setup <useruuid>', 'Setup your user UUID.')
     .command('show', 'Show your credentials (for backup).')
-    .command('restore <unencryptedPrivKey>', 'Restore credentials from backup.')
+    .command('restore <wifprivkey>', 'Restore credentials from backup.')
     .command('follow <nonce>', 'Wait an answer in the nonce.')
     .command('info', 'Retrieve general market info.')
     .command('newaddress [bech32] [currency]', 'Generate a new crypto deposit address.')

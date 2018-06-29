@@ -54,6 +54,8 @@ if (!password) {
 
             if (program.privkey) {
                 console.log('\nUnencrypted private key:', '\n' + decryptedKey);
+            } else {
+                console.warn('\n[WARN] Use the option -P to show the private key as well.');
             }
 
             if (!uuid) {
