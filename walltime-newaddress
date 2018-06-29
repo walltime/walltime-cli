@@ -8,12 +8,9 @@ if (typeof localStorage === "undefined" || localStorage === null) {
     var localStorage = new LocalStorage('./db');
 }
 
-const Message = require('bitcore-message');
 const btc = require('bitcore-lib');
-const axios = require('axios');
 const ee = require('easy-encryption');
 const common = require('./common');
-const crypto = require('crypto');
 
 program
     .option('-t, --testnet', 'use testnet')
@@ -78,96 +75,19 @@ if (program.args.length > 2) {
                 console.log('Retrieving endpoint information...');
             }
 
-            var errorFn = (error => {
-                if (program.verbose) {
-                    console.error('ERROR:', error);
-                }
+            var nonce = common.nonce();
 
-                if (program.json) {
-                    console.log(JSON.stringify({'error': true}));
+            common.callCommand(uuid, address, decryptedKey, nonce,
+                'generate-new-deposit-address', 'v1', {
+                'currency': currency,
+                'declared_amount': '1/100000000',
+                'bech32': bech32
+            }, program.verbose, program.json, program.testnet)
+            .then(a => {
+                if (a && a.address) {
+                    console.log(a.address);
                 }
             });
-
-            var globalResult;
-            var nonce = crypto.randomBytes(32).toString('hex');
-
-            process.on('SIGINT', function() {
-                console.log('');
-                console.log('**********');
-                console.log('*** INTERRUPTED! You can try to get the server reply anytime:');
-                console.log('**********');
-                console.log('============================');
-                console.log('walltime follow ' + (program.testnet ? '-t ' : '') + nonce);
-                console.log('============================');
-                console.log('FAQ: Why this command is taking too long?');
-                console.log('-----------------------------------------');
-                console.log('Some errors, specially related with repeated nonce, wrong credentials etc. Walltime server will simply ignore without return an error to the final user. It is possible that the command was lost, or it is in the queue to be processed (in case of high load on server). Each request has a timeout that can be defined by the user. In this version, the timeout is set hardcoded to 3h. You can use the command "follow" to try to get the asynchronous reply from server now or later.');
-                process.exit();
-            });
-
-            common.apiInfo(program.testnet).then(result => {
-                globalResult = result;
-
-                if (program.verbose) {
-                    console.log('Sending message to queue...');
-                }
-
-                var privateKey = new btc.PrivateKey(decryptedKey);
-                var expiration = new Date();
-
-                expiration.setSeconds(expiration.getSeconds() + common.DEFAULT_EXPIRATION_SEC);
-                var data = JSON.stringify({
-                    'expiration': expiration.toISOString(),
-                    'nonce': nonce,
-                    'version': 'v1',
-                    'command': 'generate-new-deposit-address',
-                    'user': uuid,
-                    'body': JSON.stringify({
-                        'currency': currency,
-                        'declared_amount': '1/100000000',
-                        'bech32': bech32
-                    })
-                });
-
-                var message = new Message(data);
-                var signature = message.sign(privateKey);
-
-                var body = JSON.stringify({
-                    'bitcoin-address': address,
-                    'bitcoin-signature': signature,
-                    'data': data
-                });
-
-                if (program.verbose) {
-                    console.log('Message to send:', body);
-                }
-
-                return common.insertOnQueue(globalResult.queueUrl, body);
-            }).then(a => {
-                if (program.verbose) {
-                    console.log('Sent!');
-                    console.log(a);
-                    process.stdout.write('Following the rabbit');
-                }
-
-                return common.followTheRabbit(globalResult.responsePrefix + nonce, program.verbose);
-            }).then(a => {
-                if (program.verbose) {
-                    console.log();
-                }
-
-                if (program.json) {
-                    console.log(a);
-                } else {
-                    if (!a.status || !a.status.success) {
-                        console.error(a.status && a.status.description);
-                        console.error('CODE:', a.status && a.status.code);
-                    } else {
-                        console.log(a.address);
-                    }
-                }
-
-            }).catch(errorFn);
         }
     }
 }

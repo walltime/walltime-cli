@@ -1,44 +1,142 @@
 const axios = require('axios');
 const AWS = require('aws-sdk');
 const crypto = require('crypto');
-const ee = require('easy-encryption');
+const Message = require('bitcore-message');
+const btc = require('bitcore-lib');
+
+const DEFAULT_EXPIRATION_SEC = 60 * 60 * 3; // 3h
 
 module.exports = {
-    DEFAULT_EXPIRATION_SEC : 60 * 60 * 3, // 3h
-    apiInfo: function (testnet) {
-        var url;
-
-        if (testnet) {
-            url = 'https://walltime.info/testnet/data/dynamic/api.json';
-        } else {
-            url = 'https://walltime.info/data/dynamic/api.json';
-        }
-
+    nonce : function() {
+        return crypto.randomBytes(32).toString('hex');
+    },
+    callCommand : function (uuid, address, decryptedKey, nonce,
+                            command, version, params, verbose, json, testnet) {
         return new Promise(function (resolve, reject) {
-            axios.get(url)
-                .then(response => {
-                    var queueUrl = response.data['api-queue-url'];
-                    var responsePrefix = response.data['api-response-url-prefix'];
+            try {
+                process.on('SIGINT', function () {
+                    console.log('');
+                    console.log('**********');
+                    console.log('*** INTERRUPTED! You can try to get the server reply anytime:');
+                    console.log('**********');
+                    console.log('============================');
+                    console.log('walltime follow ' + (testnet ? '-t ' : '') + nonce);
+                    console.log('============================');
+                    console.log('FAQ: Why this command is taking too long?');
+                    console.log('-----------------------------------------');
+                    console.log('Some errors, specially related with repeated nonce, wrong credentials etc. Walltime server will simply ignore without return an error to the final user. It is possible that the command was lost, or it is in the queue to be processed (in case of high load on server). Each request has a timeout that can be defined by the user. In this version, the timeout is set hardcoded to 3h. You can use the command "follow" to try to get the asynchronous reply from server now or later.');
+                    process.exit();
+                });
 
-                    if (testnet) {
-                        queueUrl = queueUrl.replace(/production/g, 'testnet');
-                        responsePrefix = responsePrefix.replace(/production/g, 'testnet');
+                var globalResult;
+
+                apiInfo(testnet).then(result => {
+                    globalResult = result;
+
+                    if (verbose) {
+                        console.log('Sending message to queue...');
                     }
 
-                    resolve({
-                        queueUrl: queueUrl,
-                        responsePrefix: responsePrefix
+                    var privateKey = new btc.PrivateKey(decryptedKey);
+                    var expiration = new Date();
+
+                    expiration.setSeconds(expiration.getSeconds() + DEFAULT_EXPIRATION_SEC);
+                    var data = JSON.stringify({
+                        'expiration': expiration.toISOString(),
+                        'nonce': nonce,
+                        'version': 'v1',
+                        'command': command,
+                        'user': uuid,
+                        'body': JSON.stringify(params)
                     });
-                })
-                .catch(error => {
+
+                    var message = new Message(data);
+                    var signature = message.sign(privateKey);
+
+                    var body = JSON.stringify({
+                        'bitcoin-address': address,
+                        'bitcoin-signature': signature,
+                        'data': data
+                    });
+
+                    if (verbose) {
+                        console.log('Message to send:', body);
+                    }
+
+                    return insertOnQueue(globalResult.queueUrl, body);
+                }).then(a => {
+                    if (verbose) {
+                        console.log('Sent!');
+                        console.log(a);
+                        process.stdout.write('Following the rabbit');
+                    }
+
+                    return followTheRabbit(globalResult.responsePrefix + nonce, verbose);
+                }).then(a => {
+                    if (verbose) {
+                        console.log();
+                    }
+
+                    if (json) {
+                        console.log(a);
+                        resolve();
+                    } else {
+                        if (!a.status || !a.status.success) {
+                            console.error(a.status && a.status.description);
+                            console.error('CODE:', a.status && a.status.code);
+                            reject(a);
+                        } else {
+                            resolve(a);
+                        }
+                    }
+                }).catch(error => {
+                    if (verbose) {
+                        console.error('ERROR:', error);
+                    }
+
+                    if (json) {
+                        console.log(JSON.stringify({'error': true}));
+                    }
+
                     reject(error);
                 });
+            } catch (err) {
+                reject(err);
+            }
         });
-    },
-
-    insertOnQueue : insertOnQueue,
-    followTheRabbit : followTheRabbit
+    }
 };
+
+function apiInfo(testnet) {
+    var url;
+
+    if (testnet) {
+        url = 'https://walltime.info/testnet/data/dynamic/api.json';
+    } else {
+        url = 'https://walltime.info/data/dynamic/api.json';
+    }
+
+    return new Promise(function (resolve, reject) {
+        axios.get(url)
+            .then(response => {
+                var queueUrl = response.data['api-queue-url'];
+                var responsePrefix = response.data['api-response-url-prefix'];
+
+                if (testnet) {
+                    queueUrl = queueUrl.replace(/production/g, 'testnet');
+                    responsePrefix = responsePrefix.replace(/production/g, 'testnet');
+                }
+
+                resolve({
+                    queueUrl: queueUrl,
+                    responsePrefix: responsePrefix
+                });
+            })
+            .catch(error => {
+                reject(error);
+            });
+    });
+}
 
 function insertOnQueue(queueUrl, message) {
     var sqs = new AWS.SQS({region: 'us-east-1',
