@@ -159,7 +159,12 @@ if (program.args.length > 2) {
                 if (program.json) {
                     console.log(a);
                 } else {
-                    console.log(a.address);
+                    if (!a.status || !a.status.success) {
+                        console.error(a.status && a.status.description);
+                        console.error('CODE:', a.status && a.status.code);
+                    } else {
+                        console.log(a.address);
+                    }
                 }
 
             }).catch(errorFn);
