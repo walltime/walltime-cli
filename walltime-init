@@ -9,8 +9,6 @@ if (typeof localStorage === "undefined" || localStorage === null) {
 }
 
 const btc = require('bitcore-lib');
-const bip38 = require('bip38');
-const wif = require('wif');
 const ee = require('easy-encryption');
 
 program
@@ -56,9 +54,7 @@ if (!password) {
         var privateKey = new btc.PrivateKey();
         var address = privateKey.toAddress(network);
 
-        const privateKeyDecoded = wif.decode(privateKey.toWIF());
-        var privateKeyEncrypted = bip38.encrypt(
-            privateKeyDecoded.privateKey, privateKeyDecoded.compressed, password);
+        var decryptedPrivateKey = privateKey.toWIF();
 
         if (!program.json) {
             console.log('');
@@ -67,18 +63,12 @@ if (!password) {
             console.log('==========================================');
             console.log(address.toString());
             console.log('==========================================');
-            console.log('');
-            console.log('Please, backup your BIP-38 encrypted private key:');
-            console.log('==========================================');
-            console.log(privateKeyEncrypted);
-            console.log('==========================================');
-            console.log('Don\'t forget to write down your $WT_SECRET as well.');
-            console.log('');
 
             if (program.privkey) {
+                console.log('');
                 console.log('As requested, follow your unencrypted private key, BE CAREFUL:');
                 console.log('==========================================');
-                console.log(privateKey.toWIF());
+                console.log(decryptedPrivateKey);
                 console.log('==========================================');
                 console.log('');
             }
@@ -89,14 +79,13 @@ if (!password) {
             result['address'] = address.toString();
 
             if (program.privkey) {
-                result['privkey'] = privateKey.toWIF();
+                result['privkey'] = decryptedPrivateKey;
             }
 
-            result['bip38_privkey'] = privateKeyEncrypted;
             console.log(JSON.stringify(result));
         }
 
         localStorage.setItem(network + '.pub', ee.encrypt(password, address.toString()));
-        localStorage.setItem(network + '.sec', ee.encrypt(password, privateKeyEncrypted));
+        localStorage.setItem(network + '.sec', ee.encrypt(password, decryptedPrivateKey));
     }
 }

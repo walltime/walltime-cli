@@ -9,8 +9,6 @@ if (typeof localStorage === "undefined" || localStorage === null) {
 }
 
 const btc = require('bitcore-lib');
-const bip38 = require('bip38');
-const wif = require('wif');
 const ee = require('easy-encryption');
 
 program
@@ -44,24 +42,17 @@ if (!password) {
             console.error('You don\'t have credentials yet. Create one using init command.');
         }
     } else {
-        var encryptedPrivKey = ee.decrypt(password, localStorage.getItem(network + '.sec'));
         var address = ee.decrypt(password, localStorage.getItem(network + '.pub'));
         var uuid = localStorage.getItem(network + '.uuid') &&
                 ee.decrypt(password, localStorage.getItem(network + '.uuid'));
 
-        var decryptedKey;
-
-        if (program.privkey) {
-            decryptedKey = bip38.decrypt(encryptedPrivKey, password);
-            decryptedKey = wif.encode(0x80, decryptedKey.privateKey, decryptedKey.compressed);
-        }
+        var decryptedKey = ee.decrypt(password, localStorage.getItem(network + '.sec'));
 
         if (!program.json) {
             console.log('');
             console.log('Address:', '\n' + address);
-            console.log('\nBIP-38 encrypted private key:', '\n' + encryptedPrivKey);
 
-            if (decryptedKey) {
+            if (program.privkey) {
                 console.log('\nUnencrypted private key:', '\n' + decryptedKey);
             }
 
@@ -75,9 +66,8 @@ if (!password) {
         } else {
             var result = {};
             result['address'] = address;
-            result['bip38_privkey'] = encryptedPrivKey;
 
-            if (decryptedKey) {
+            if (program.privkey) {
                 result['privkey'] = decryptedKey;
             }
 

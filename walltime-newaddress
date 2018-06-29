@@ -10,8 +10,6 @@ if (typeof localStorage === "undefined" || localStorage === null) {
 
 const Message = require('bitcore-message');
 const btc = require('bitcore-lib');
-const bip38 = require('bip38');
-const wif = require('wif');
 const axios = require('axios');
 const ee = require('easy-encryption');
 const common = require('./common');
@@ -73,14 +71,8 @@ if (program.args.length > 2) {
                 console.error('You didn\'t setup your UUID yet. Call "walltime setup <uuid>".');
             }
         } else {
-            if (program.verbose) {
-                console.log('Decrypting your credentials...');
-            }
-
             var address = ee.decrypt(password, localStorage.getItem(network + '.pub'));
-            var encryptedPrivKey = ee.decrypt(password, localStorage.getItem(network + '.sec'));
-            var decryptedKey = bip38.decrypt(encryptedPrivKey, password);
-            decryptedKey = wif.encode(0x80, decryptedKey.privateKey, decryptedKey.compressed);
+            var decryptedKey = ee.decrypt(password, localStorage.getItem(network + '.sec'));
 
             if (program.verbose) {
                 console.log('Retrieving endpoint information...');
