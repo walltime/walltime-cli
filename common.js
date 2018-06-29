@@ -36,7 +36,7 @@ module.exports = {
         });
     },
 
-    insert : insertOnQueue,
+    insertOnQueue : insertOnQueue,
     followTheRabbit : followTheRabbit
 };
 

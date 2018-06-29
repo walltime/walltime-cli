@@ -142,7 +142,7 @@ if (program.args.length > 2) {
                     console.log('Message to send:', body);
                 }
 
-                return common.insert(globalResult.queueUrl, body);
+                return common.insertOnQueue(globalResult.queueUrl, body);
             }).then(a => {
                 if (program.verbose) {
                     console.log('Sent!');
