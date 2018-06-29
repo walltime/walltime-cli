@@ -21,6 +21,7 @@ program
     .option('-t, --testnet', 'use testnet')
     .option('-j, --json', 'return in json format')
     .option('-v, --verbose', 'verbose mode')
+    .description('Generate a new crypto deposit address.')
     .parse(process.argv);
 
 var password = process.env.WT_SECRET;

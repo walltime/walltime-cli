@@ -14,6 +14,7 @@ const btc = require('bitcore-lib');
 program
     .option('-t, --testnet', 'use testnet')
     .option('-j, --json', 'return in json format')
+    .description('After call "init" and inform the address to our Walltime online support you will receive an UUID. You then have to call this command with this informed UUID.')
     .parse(process.argv);
 
 var password = process.env.WT_SECRET;

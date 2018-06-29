@@ -6,15 +6,16 @@ const program = require('commander');
 program
     .version('1.0.0')
     .description('Walltime CLI is the Walltime Digital Assets Exchange Command Line Interface. With this app, you can easily retrieve market info and manipulate your account.')
-    .command('init', 'Build new credentials. Use it only in the very FIRST time. The credentials are kept saved on disk.')
-    .command('setup <useruuid>', 'After call "init" and inform the address to our support, call this with the informed UUID.')
-    .command('show', 'Show your credentials (useful for backup).')
-    .command('restore <privkey>',
-            'Restore credentials from backup using a WIF unencrypted private key.')
+    .command('init', 'Build new credentials.')
+    .command('setup <useruuid>', 'Setup your user UUID.')
+    .command('show', 'Show your credentials (for backup).')
+    .command('restore <unencryptedPrivKey>', 'Restore credentials from backup.')
     .command('follow <nonce>', 'Wait an answer in the nonce.')
     .command('info', 'Retrieve general market info.')
-    .command('newaddress [bech32] [currency]', 'Generate a new Bitcoin deposit address.')
+    .command('newaddress [bech32] [currency]', 'Generate a new crypto deposit address.')
     .on('--help', function() {
+        console.log('');
+        console.log('Use walltime <command> -h to see more info about each command.');
         console.log('');
         console.log('To be able to use some commands, you have to set the system environment variable WT_SECRET to a secret that will be used to encrypt your credentials on disk. To keep it safe, it is recommended to clear this variable later.');
         console.log('');

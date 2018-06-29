@@ -17,6 +17,7 @@ program
     .option('-t, --testnet', 'use testnet')
     .option('-j, --json', 'return in json format')
     .option('-P, --privkey', 'return unenctrypted private key on screen (CAUTION!)')
+    .description('Show your credentials (useful for backup).')
     .parse(process.argv);
 
 var password = process.env.WT_SECRET;

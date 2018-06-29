@@ -18,6 +18,7 @@ program
     .option('-j, --json', 'return in json format')
     .option('-f, --force', 'force regenerate (overwrite) credentials (CAUTION!)')
     .option('-P, --privkey', 'show unencrypted private key on screen (CAUTION!)')
+    .description('Build new credentials. Use it only in the very FIRST time. The credentials are kept saved on disk.')
     .parse(process.argv);
 
 var password = process.env.WT_SECRET;

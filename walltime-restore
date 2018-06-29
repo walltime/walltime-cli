@@ -17,6 +17,7 @@ program
     .option('-t, --testnet', 'use testnet')
     .option('-j, --json', 'return in json format')
     .option('-f, --force', 'force regenerate (overwrite) credentials (CAUTION!)')
+    .description('Restore credentials from backup using a WIF unencrypted private key.')
     .parse(process.argv);
 
 var privkey = program.args[0];
