@@ -17,3 +17,5 @@ workspace.xml___jb_bak___
 
 # runtime
 db/
+*.log
+
