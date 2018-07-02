@@ -378,6 +378,10 @@ program
 
             var env = getEnv();
 
+            if (program.verbose) {
+                console.log('Retrieving meta information...');
+            }
+
             common.metaInfo(env).then(a => {
                 var url = 'https://s3.amazonaws.com/data-' + env + '-walltime-info/' + env + '/dynamic/'
                     + a.data.last_trades_prefix + '_BRL-XBT_' + dateStr + '_p0.json?now=' + common.nonce();
@@ -389,15 +393,15 @@ program
 
                 return axios.get(url);
             }).then(response => {
-                    console.log(response.data);
-                })
-                .catch(error => {
-                    if (program.json) {
-                        console.log(JSON.stringify(JSON_ERROR));
-                    } else {
-                        console.error(error);
-                    }
-                });
+                console.log(response.data);
+            })
+            .catch(error => {
+                if (program.json) {
+                    console.log(JSON.stringify(JSON_ERROR));
+                } else {
+                    console.error(error);
+                }
+            });
         }
     })
     .on('--help', function() {
