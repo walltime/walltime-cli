@@ -87,7 +87,7 @@ var getEnv = function() {
 program
     .version('1.0.0')
     .option('-t, --testnet', 'use testnet')
-    .option('-j, --json', 'return in json format')
+    .option('-j, --json', 'return in json format when possible')
     .option('-v, --verbose', 'verbose mode')
     .description('Walltime CLI is the Walltime Digital Assets Exchange Command Line Interface. With this app, you can easily retrieve market info and manipulate your account.')
     .on('--help', function() {
