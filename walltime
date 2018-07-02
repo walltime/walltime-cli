@@ -347,10 +347,14 @@ program
     });
 
 program
-    .command('trades <year_month_day_hour|iso8601>')
-    .usage('<year_month_day_hour|iso8601>')
+    .command('trades [year_month_day_hour|iso8601]')
+    .usage('[year_month_day_hour|iso8601]')
     .description('Retrieve global last trades of a given interval of hour (UTC).')
     .action(function(dateStr) {
+        if (!dateStr) {
+            dateStr = new Date().toISOString();
+        }
+
         if (dateStr.split('_').length != 4 && !validator.isISO8601(dateStr)) {
             if (program.json) {
                 console.log(JSON.stringify(JSON_ERROR));
