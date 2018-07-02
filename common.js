@@ -5,11 +5,14 @@ const Message = require('bitcore-message');
 const btc = require('bitcore-lib');
 
 const DEFAULT_EXPIRATION_SEC = 60 * 60 * 3; // 3h
+const JSON_ERROR = { status : { success : false }};
 
 module.exports = {
     nonce : function() {
         return crypto.randomBytes(32).toString('hex');
     },
+    apiInfo : apiInfo,
+    followTheRabbit : followTheRabbit,
     callCommand : function (uuid, address, decryptedKey, nonce,
                             command, version, params, verbose, json, testnet) {
         return new Promise(function (resolve, reject) {
@@ -95,7 +98,7 @@ module.exports = {
                     }
 
                     if (json) {
-                        console.log(JSON.stringify({'error': true}));
+                        console.log(JSON.stringify(JSON_ERROR));
                     }
 
                     reject(error);
@@ -104,8 +107,15 @@ module.exports = {
                 reject(err);
             }
         });
-    }
+    },
+    metaInfo : metaInfo
 };
+
+function metaInfo(env) {
+    var tokenToAvoidCache = crypto.randomBytes(32).toString('hex');
+    return axios.get('https://s3.amazonaws.com/data-' + env
+            + '-walltime-info/' + env + '/dynamic/meta.json?now=' + tokenToAvoidCache);
+}
 
 function apiInfo(testnet) {
     var url;

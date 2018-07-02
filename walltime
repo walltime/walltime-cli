@@ -3,29 +3,511 @@
 'use strict';
 const program = require('commander');
 
+if (typeof localStorage === "undefined" || localStorage === null) {
+    var LocalStorage = require('node-localstorage').LocalStorage;
+    var localStorage = new LocalStorage('./db');
+}
+
+const btc = require('bitcore-lib');
+const ee = require('easy-encryption');
+const validator = require('validator');
+const crypto = require('crypto');
+const axios = require('axios');
+const n2f = require('num2fraction');
+const common = require('./common');
+
+var password = process.env.WT_SECRET;
+
+const JSON_ERROR = { status : { success : false }};
+
+var checkForPassword = function() {
+    if (!password) {
+        if (program.json) {
+            console.log(JSON.stringify(JSON_ERROR));
+        } else {
+            console.error('Please, set the WT_SECRET env variable. It is required to encrypt/decrypt your credentials on disk.');
+        }
+    }
+
+    return password;
+};
+
+var checkForCredentials = function() {
+    var hasCredentials = localStorage.getItem(getNetwork() + '.pub');
+
+    if (!hasCredentials) {
+        if (program.json) {
+            console.log(JSON.stringify(JSON_ERROR));
+        } else {
+            console.error('You don\'t have credentials yet. Create one using "init" command.');
+        }
+    }
+
+    return hasCredentials;
+};
+
+var checkForUUID = function() {
+    var hasCredentials = localStorage.getItem(getNetwork() + '.uuid');
+
+    if (!hasCredentials) {
+        if (program.json) {
+            console.log(JSON.stringify(JSON_ERROR));
+        } else {
+            console.error('You don\'t have UUID configured yet. Use "setup" command to set one.');
+        }
+    }
+
+    return hasCredentials;
+};
+
+var getNetwork = function() {
+    var network;
+
+    if (program.testnet) {
+        network = btc.Networks.testnet;
+    } else {
+        network = btc.Networks.livenet;
+    }
+
+    return network;
+};
+
+var getEnv = function() {
+    var env;
+
+    if (getNetwork() === btc.Networks.testnet) {
+        env = 'testnet';
+    } else {
+        env = 'production';
+    }
+
+    return env;
+};
+
 program
     .version('1.0.0')
+    .option('-t, --testnet', 'use testnet')
+    .option('-j, --json', 'return in json format')
+    .option('-v, --verbose', 'verbose mode')
     .description('Walltime CLI is the Walltime Digital Assets Exchange Command Line Interface. With this app, you can easily retrieve market info and manipulate your account.')
-    .command('init', 'Build new credentials.')
-    .command('setup <useruuid>', 'Setup your user UUID.')
-    .command('show', 'Show your credentials (for backup).')
-    .command('restore <wifprivkey>', 'Restore credentials from backup.')
-    .command('follow <nonce>', 'Wait an answer in the nonce.')
-    .command('info', 'Retrieve general market info.')
-    .command('newaddress [bech32] [currency]', 'Generate a new crypto deposit address.')
     .on('--help', function() {
         console.log('');
         console.log('Use walltime <command> -h to see more info about each command.');
+
+        if (!password) {
+            console.log('');
+            console.log('*** IMPORTANT ***');
+            console.log('');
+            console.log('To be able to use some commands, you have to set the system environment variable WT_SECRET to a secret that will be used to encrypt your credentials on disk. To keep it safe, it is recommended to clear this variable later.');
+            console.log('');
+            console.log('On Linux, use:');
+            console.log('');
+            console.log('\texport WT_SECRET=<yoursecret>');
+            console.log('');
+            console.log('On Windows, use:');
+            console.log('');
+            console.log('\tset WT_SECRET=<yoursecret>');
+        } else {
+            console.log('➜ $WT_SECRET is set, remember to cleanup this later.');
+        }
+
         console.log('');
-        console.log('To be able to use some commands, you have to set the system environment variable WT_SECRET to a secret that will be used to encrypt your credentials on disk. To keep it safe, it is recommended to clear this variable later.');
+    });
+
+program
+    .command('init')
+    .usage('[-fP]')
+    .description('Build new credentials.')
+    .option('-f, --force', 'force regenerate (overwrite) credentials (CAUTION!)')
+    .option('-P, --privkey', 'show unencrypted private key on screen (CAUTION!)')
+    .action(function(options) {
+        if (checkForPassword()) {
+            var network = getNetwork();
+
+            if (localStorage.getItem(network + '.pub') && !options.force) {
+                if (program.json) {
+                    console.log(JSON.stringify(JSON_ERROR));
+                } else {
+                    console.error('You already have stored credentials. Use -f to force overwrite.');
+                }
+            } else {
+                if (localStorage.getItem(network + '.pub') && !program.json) {
+                    console.warn('[WARN] The credentials was overwritten!');
+                }
+
+                if (!program.json) {
+                    console.log('Generating your credentials...');
+                }
+
+                var privateKey = new btc.PrivateKey();
+                var address = privateKey.toAddress(network);
+
+                var decryptedPrivateKey = privateKey.toWIF();
+
+                if (!program.json) {
+                    console.log('');
+                    console.log('DONE! Now, please inform the following address to our 24h support in https://m.me/walltime.info and identify yourself.');
+                    console.log('');
+                    console.log('*** IMPORTANT: You will receive from our support an UUID and you have to call "walltime setup <UUID>" before call some commands.');
+                    console.log('==========================================');
+                    console.log(address.toString());
+                    console.log('==========================================');
+
+                    if (options.privkey) {
+                        console.log('');
+                        console.log('As requested, follow your unencrypted private key, BE CAREFUL:');
+                        console.log('==========================================');
+                        console.log(decryptedPrivateKey);
+                        console.log('==========================================');
+                        console.log('');
+                    }
+                }
+
+                if (program.json) {
+                    var result = {};
+                    result['address'] = address.toString();
+
+                    if (options.privkey) {
+                        result['privkey'] = decryptedPrivateKey;
+                    }
+
+                    console.log(JSON.stringify(result));
+                }
+
+                localStorage.setItem(network + '.pub', ee.encrypt(password, address.toString()));
+                localStorage.setItem(network + '.sec', ee.encrypt(password, decryptedPrivateKey));
+            }
+        }
+    }).on('--help', function() {
         console.log('');
-        console.log('On Linux, use:');
+        console.log('Use it only in the very FIRST time. The credentials are kept saved on disk.');
         console.log('');
-        console.log('\texport WT_SECRET=<yoursecret>');
+    });
+
+program
+    .command('setup <useruuid>')
+    .usage('<useruuid>')
+    .description('Setup your user UUID.')
+    .action(function(uuid) {
+        if (!validator.isUUID(uuid)) {
+            if (program.json) {
+                console.log(JSON.stringify(JSON_ERROR));
+            } else {
+                console.error(uuid, 'is not a valid UUID.');
+            }
+        } else if (checkForPassword() && checkForCredentials()) {
+            var network = getNetwork();
+
+            if (localStorage.getItem(network + '.uuid') && !program.json) {
+                console.warn('[WARN] The UUID was overwritten!');
+            }
+
+            if (program.json) {
+                console.log(JSON.stringify({'success': true}));
+            } else {
+                localStorage.setItem(network + '.uuid', ee.encrypt(password, uuid));
+                console.log('UUID stored!');
+            }
+        }
+    }).on('--help', function() {
         console.log('');
-        console.log('On Windows, use:');
+        console.log('After call "init" and inform the address to our Walltime online support you will receive an UUID. You then have to call this command with this informed UUID.');
         console.log('');
-        console.log('\tset WT_SECRET=<yoursecret>');
-        console.log('');
+    });
+
+program
+    .command('show')
+    .usage('[-P]')
+    .description('Show your credentials (for backup).')
+    .option('-P, --privkey', 'show unencrypted private key on screen (CAUTION!)')
+    .action(function(options) {
+        if (checkForPassword() && checkForCredentials()) {
+            var network = getNetwork();
+            var address = ee.decrypt(password, localStorage.getItem(network + '.pub'));
+            var uuid = localStorage.getItem(network + '.uuid') &&
+                ee.decrypt(password, localStorage.getItem(network + '.uuid'));
+
+            var decryptedKey = ee.decrypt(password, localStorage.getItem(network + '.sec'));
+
+            if (!program.json) {
+                console.log('');
+                console.log('Address:', '\n' + address);
+
+                if (options.privkey) {
+                    console.log('\nUnencrypted private key:', '\n' + decryptedKey);
+                }
+
+                if (!uuid) {
+                    console.log('\n*** UUID is undefined! Please, define it calling "walltime setup <uuid>".');
+                } else {
+                    console.log('\nUUID:', '\n' + uuid);
+                }
+
+                if (!options.privkey) {
+                    console.warn('\n[WARN] Use the option -P to show the private key as well.');
+                }
+
+                console.log('');
+            } else {
+                var result = {};
+                result['address'] = address;
+
+                if (options.privkey) {
+                    result['privkey'] = decryptedKey;
+                }
+
+                if (uuid) {
+                    result['uuid'] = uuid;
+                }
+
+                console.log(JSON.stringify(result));
+            }
+        }
+    });
+
+program
+    .command('restore <wifprivkey>')
+    .usage('[-f] <wifprivkey>')
+    .description('Restore credentials from backup.')
+    .option('-f, --force', 'force overwrite credentials (CAUTION!)')
+    .action(function(privkey, options) {
+        if (checkForPassword()) {
+            var network = getNetwork();
+
+            if (localStorage.getItem(network + '.pub') && !options.force) {
+                if (program.json) {
+                    console.log(JSON.stringify(JSON_ERROR));
+                } else {
+                    console.error('You already have stored credentials. Use -f to force overwrite.');
+                }
+            } else {
+                if (localStorage.getItem(network + '.pub') && !program.json) {
+                    console.warn('[WARN] The credentials was overwritten!');
+                }
+
+                var privateKey = btc.PrivateKey.fromWIF(privkey);
+                var address = privateKey.toAddress(network);
+
+                if (!program.json) {
+                    console.log('');
+                    console.log('Done! Now, please inform the following address to our 24h support in https://m.me/walltime.info and identify yourself.');
+                    console.log('==========================================');
+                    console.log(address.toString());
+                    console.log('==========================================');
+                    console.log('');
+                } else {
+                    var result = {};
+                    result['address'] = address.toString();
+                    result['bip38_privkey'] = privateKeyEncrypted;
+                    console.log(JSON.stringify(result));
+                }
+
+                localStorage.setItem(network + '.pub', ee.encrypt(password, address.toString()));
+                localStorage.setItem(network + '.sec', ee.encrypt(password, privkey));
+            }
+        }
+    });
+
+program
+    .command('info [field]')
+    .usage('[field]')
+    .description('Retrieve general market info.')
+    .action(function(field) {
+        var env = getEnv();
+        var url = 'https://s3.amazonaws.com/data-' + env + '-walltime-info/'
+                + env + '/dynamic/walltime-info.json?nocache=' + common.nonce();
+
+        if (program.verbose) {
+            console.log('GET ' + url);
+            console.log();
+        }
+
+        axios.get(url)
+            .then(response => {
+                if (!field) {
+                    console.log(response.data);
+                } else {
+                    var fieldValue = response.data[field] || response.data['BRL_XBT'][field];
+
+                    if (program.json) {
+                        console.log(JSON.stringify({'result': fieldValue}));
+                    } else {
+                        console.log(fieldValue);
+                    }
+                }
+            })
+            .catch(error => {
+                if (program.json) {
+                    console.log(JSON.stringify(JSON_ERROR));
+                } else {
+                    console.error(error);
+                }
+            });
+
+    });
+
+program
+    .command('trades <year_month_day_hour|iso8601>')
+    .usage('<year_month_day_hour|iso8601>')
+    .description('Retrieve global last trades of a given interval of hour (UTC).')
+    .action(function(dateStr) {
+        if (dateStr.split('_').length != 4 && !validator.isISO8601(dateStr)) {
+            if (program.json) {
+                console.log(JSON.stringify(JSON_ERROR));
+            } else {
+                console.error('Invalid argument. You have to use <year_month_day_hour> or <ISO8601> date format.');
+            }
+        } else {
+            if (validator.isISO8601(dateStr)) {
+                var parsedDate = new Date(Date.parse(dateStr));
+
+                if (program.verbose) {
+                    console.log(parsedDate);
+                    console.log();
+                }
+
+                dateStr = parsedDate.getUTCFullYear()
+                        + '_' + (('0' + (parsedDate.getUTCMonth() + 1)).slice(-2))
+                        + '_' + (('0' + parsedDate.getUTCDate()).slice(-2))
+                        + '_' + (('0' + parsedDate.getUTCHours()).slice(-2));
+            }
+
+            var env = getEnv();
+
+            common.metaInfo(env).then(a => {
+                var url = 'https://s3.amazonaws.com/data-' + env + '-walltime-info/' + env + '/dynamic/'
+                    + a.data.last_trades_prefix + '_BRL-XBT_' + dateStr + '_p0.json?now=' + common.nonce();
+
+                if (program.verbose) {
+                    console.log('GET ' + url);
+                    console.log();
+                }
+
+                return axios.get(url);
+            }).then(response => {
+                    console.log(response.data);
+                })
+                .catch(error => {
+                    if (program.json) {
+                        console.log(JSON.stringify(JSON_ERROR));
+                    } else {
+                        console.error(error);
+                    }
+                });
+        }
     })
-    .parse(process.argv);
+    .on('--help', function() {
+        console.log('');
+        console.log('Examples:');
+        console.log('');
+        console.log('\twalltime trades 2018_06_29_13');
+            console.log('\twalltime trades 2018-06-29T13:00:00Z');
+        console.log('\twalltime trades 2018-06-29T10:00:00-0300 (Brazilian default timezone)');
+        console.log('');
+        console.log('\t=> trades between 2018-06-29 1PM and 2PM UTC.');
+        console.log('');
+        console.log('Month, day and hour are left zero-padded with total of two digits (e.g. 02, 03, 04 etc.)');
+        console.log('');
+    });
+
+program
+    .command('newaddress [bech32] [currency] [amount]')
+    .usage('[bech32] [currency] [amount]')
+    .description('Generate a new crypto deposit address.')
+    .action(function(bech32, currency, amount) {
+        var bech32 = !(bech32 === 'false' || bech32 === 'f' || bech32 === 'legacy')
+                && !!bech32;
+
+        if (!currency) {
+            currency = 'xbt';
+        }
+
+        if (checkForPassword() && checkForCredentials() && checkForUUID()) {
+            var network = getNetwork();
+            var uuid = ee.decrypt(password, localStorage.getItem(network + '.uuid'));
+
+            var address = ee.decrypt(password, localStorage.getItem(network + '.pub'));
+            var decryptedKey = ee.decrypt(password, localStorage.getItem(network + '.sec'));
+
+            if (program.verbose) {
+                console.log('Retrieving endpoint information...');
+            }
+
+            var nonce = common.nonce();
+
+            common.callCommand(uuid, address, decryptedKey, nonce,
+                'generate-new-deposit-address', 'v1', {
+                    'currency': currency,
+                    'declared_amount': ((amount && n2f(amount)) || '1/100000000'),
+                    'bech32': bech32
+                }, program.verbose, program.json, program.testnet)
+                .then(a => {
+                    if (a && a.address) {
+                        console.log(a.address);
+                    }
+                });
+        }
+    })
+    .on('--help', function() {
+        console.log('');
+        console.log('Default values:');
+        console.log('\tbech32 = false\n\tcurrency = xbt\n\tamount = 0.00000001');
+        console.log('');
+        console.log('Examples:');
+        console.log('');
+        console.log('\twalltime newaddress');
+        console.log('\twalltime newaddress true');
+        console.log('\twalltime newaddress false xbt');
+        console.log('\twalltime newaddress false xbt 0.005');
+        console.log('');
+    });
+
+program
+    .command('follow <nonce>')
+    .usage('<nonce>')
+    .description('Wait an answer in the nonce.')
+    .action(function(nonce) {
+        var network = getNetwork();
+        if (program.verbose) {
+            console.log('Retrieving endpoint information...');
+        }
+
+        var errorFn = (error => {
+            if (program.verbose) {
+                console.error('ERROR:', error);
+            }
+
+            if (program.json) {
+                console.log(JSON.stringify(JSON_ERROR));
+            }
+        });
+
+        var globalResult;
+
+        common.apiInfo(program.testnet).then(result => {
+            globalResult = result;
+
+            if (program.verbose) {
+                process.stdout.write('Following the rabbit');
+            }
+
+            return common.followTheRabbit(globalResult.responsePrefix + nonce, program.verbose);
+        }).then(a => {
+            if (program.verbose) {
+                console.log();
+            }
+
+            console.log(a);
+        }).catch(errorFn);
+    })
+    .on('--help', function() {
+        console.log('');
+        console.log('Useful if you have interrupted a command and want to follow the server reply.');
+        console.log('');
+    });
+
+if (!process.argv.slice(2).length) {
+    program.outputHelp();
+}
+
+program.parse(process.argv);
