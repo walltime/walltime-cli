@@ -419,6 +419,65 @@ program
     });
 
 program
+    .command('orderbook [page]')
+    .usage('[page|-T|-r]')
+    .option('-T, --totalpages', 'Show total of pages.')
+    .option('-r, --round', 'Show current round.')
+    .description('Retrieve order book information.')
+    .action(function(page, options) {
+        var env = getEnv();
+
+        if (program.verbose) {
+            console.log('Retrieving meta information...');
+        }
+
+        common.metaInfo(env).then(a => {
+            if (options.round) {
+                console.log(a.data.current_round);
+                return null;
+            } else if (options.totalpages) {
+                console.log(a.data.order_book_pages);
+                return null;
+            } else {
+                if (!page) {
+                    page = '0';
+                }
+
+                var url = 'https://s3.amazonaws.com/data-' + env + '-walltime-info/' + env + '/dynamic/'
+                        + a.data.order_book_prefix + '_r' + a.data.current_round
+                        + '_p' + page + '.json?now=' + common.nonce();
+
+                if (program.verbose) {
+                    console.log('GET ' + url);
+                    console.log();
+                }
+
+                return axios.get(url);
+            }
+        }).then(response => {
+                if (response && response.data) {
+                    console.log(response.data);
+                }
+            })
+        .catch(error => {
+            if (program.json) {
+                console.log(JSON.stringify(JSON_ERROR));
+            } else {
+                console.error(error);
+            }
+        });
+    })
+    .on('--help', function() {
+        console.log('');
+        console.log('The arg page starts on zero.');
+        console.log('');
+        console.log('\twalltime orderbook');
+        console.log('\twalltime orderbook 0');
+        console.log('\twalltime orderbook 5');
+        console.log('\twalltime orderbook --totalpages');
+    });
+
+program
     .command('newaddress [bech32] [currency] [amount]')
     .usage('[bech32] [currency] [amount]')
     .description('Generate a new crypto deposit address.')
@@ -433,7 +492,6 @@ program
         if (checkForPassword() && checkForCredentials() && checkForUUID()) {
             var network = getNetwork();
             var uuid = ee.decrypt(password, localStorage.getItem(network + '.uuid'));
-
             var address = ee.decrypt(password, localStorage.getItem(network + '.pub'));
             var decryptedKey = ee.decrypt(password, localStorage.getItem(network + '.sec'));
 
@@ -475,7 +533,6 @@ program
     .usage('<nonce>')
     .description('Wait an answer in the nonce.')
     .action(function(nonce) {
-        var network = getNetwork();
         if (program.verbose) {
             console.log('Retrieving endpoint information...');
         }
@@ -511,6 +568,75 @@ program
     .on('--help', function() {
         console.log('');
         console.log('Useful if you have interrupted a command and want to follow the server reply.');
+        console.log('');
+    });
+
+program
+    .command('addfiataccount <currency> <agencynumber> <accountnumber> <accountdigit> <accounttype> <bankcode> <label> [extrainfo]')
+    .usage('<currency> <agencynumber> [-d <agencydigit>] <accountnumber> <accountdigit> <cc|cp> <bankcode> <label> [extrainfo]')
+    .description('Add a withdraw fiat account.')
+    .option('-d, --agencydigit <agencydigit>', 'OPTIONAL: Agency digit information. Most of Brazilian banks do not have this digit.')
+    .action(function(currency, agencynumber, accountnumber, accountdigit, accounttype, bankcode, label, extrainfo, options) {
+        if (!options.agencydigit) {
+            options.agencydigit = '';
+        }
+
+        if (!extrainfo) {
+            extrainfo = '';
+        }
+
+        if (accounttype != 'cc' && accounttype != 'cp') {
+            console.error('On accounttype use cc for checking account and cp for savings account.');
+        } else if (bankcode.length != 3) {
+            console.error('Bank code should have 3 digits. Complete with left-zeros when necessary.');
+        } else {
+            var accountInfo = {
+                account: accountnumber,
+                account_digit: accountdigit,
+                account_type: accounttype,
+                agency : agencynumber,
+                agency_digit : options.agencydigit,
+                bank : bankcode,
+                bank_other : '',
+                currency : currency,
+                label : label,
+                extra_info : extrainfo,
+                type : 'new'
+            };
+
+            if (checkForPassword() && checkForCredentials() && checkForUUID()) {
+                var network = getNetwork();
+                var uuid = ee.decrypt(password, localStorage.getItem(network + '.uuid'));
+                var address = ee.decrypt(password, localStorage.getItem(network + '.pub'));
+                var decryptedKey = ee.decrypt(password, localStorage.getItem(network + '.sec'));
+
+                if (program.verbose) {
+                    console.log('Retrieving endpoint information...');
+                }
+
+                var nonce = common.nonce();
+
+                common.callCommand(uuid, address, decryptedKey, nonce,
+                    'add-withdraw-address', 'v1', {
+                        'account_info': JSON.stringify(accountInfo)
+                    }, program.verbose, program.json, program.testnet)
+                    .then(a => {
+                        if (a && a.status && a.status.description) {
+                            console.log(a.status.description);
+                        } else {
+                            console.log(a);
+                        }
+                    });
+            }
+        }
+    })
+    .on('--help', function() {
+        console.log('');
+        console.log('Examples:');
+        console.log('');
+        console.log('\twalltime addfiataccount brl 0001 -d X 54433 5 cc 001 "Banco do Brasil, ag. 0001-X, c/c 54433"');
+        console.log('\twalltime addfiataccount brl 0021 24433 1 cp 341 "Banco Itaú, ag. 0021, c/p 24433-1"');
+        console.log('\twalltime addfiataccount brl 3422 4822 4 cc 341 "Banco Itaú, ag. 0021, c/p 24433-1" "Any observation."');
         console.log('');
     });
 
