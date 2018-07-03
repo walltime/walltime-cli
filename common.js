@@ -33,6 +33,10 @@ module.exports = {
 
                 var globalResult;
 
+                if (verbose) {
+                    console.log('Retrieving endpoint information...');
+                }
+
                 apiInfo(testnet).then(result => {
                     globalResult = result;
 
@@ -81,7 +85,7 @@ module.exports = {
                     }
 
                     if (json) {
-                        console.log(a);
+                        console.log(JSON.stringify(a, null, 2));
                         resolve();
                     } else {
                         if (!a.status || !a.status.success) {
