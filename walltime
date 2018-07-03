@@ -550,6 +550,53 @@ program
     });
 
 program
+    .command('accountstatement [daysago] [n_days] [minutes_offset]')
+    .usage('[daysago] [n_days] [minutes_offset]')
+    .description('Retrieve account statement info.')
+    .action(function(daysago, n_days, minutes_offset) {
+        if (checkForPassword() && checkForCredentials() && checkForUUID()) {
+            var network = getNetwork();
+            var uuid = ee.decrypt(password, localStorage.getItem(network + '.uuid'));
+            var addressC = ee.decrypt(password, localStorage.getItem(network + '.pub'));
+            var decryptedKey = ee.decrypt(password, localStorage.getItem(network + '.sec'));
+
+            var nonce = common.nonce();
+
+            common.callCommand(uuid, addressC, decryptedKey, nonce,
+                'get-account-statement', 'v1', {
+                    days_ago : (daysago && parseInt(daysago)) || 30,
+                    n_days : (n_days && parseInt(n_days)) || 30,
+                    minutes_offset : (minutes_offset && parseInt(minutes_offset)) || 0
+                },
+                program.verbose, program.json, program.testnet)
+                .then(a => {
+                    if (program.verbose) {
+                        console.log();
+                        console.log(a.status.description);
+                        console.log();
+                    }
+
+                    if (a && a.status && a.status.description) {
+                        console.log(JSON.stringify(a.statement, null, 2));
+                    }
+                });
+        }
+    })
+    .on('--help', function() {
+        console.log('');
+        console.log('daysago - How many days ago from now the statement will start. Default: 30');
+        console.log('n_days - How many days in total. Default: 30');
+        console.log('minutes_offset - Your timezone minutes offset. For example, Brazilian minutes offset is -180 and UTC is 0. Default is 0.');
+        console.log('');
+        console.log('Examples:');
+        console.log('');
+        console.log('\twalltime accountstatement');
+        console.log('\twalltime accountstatement 10 10');
+        console.log('\twalltime accountstatement 10 10 -- -180');
+        console.log('');
+    });
+
+program
     .command('newaddress [bech32] [currency] [amount]')
     .usage('[bech32] [currency] [amount]')
     .description('Generate a new crypto deposit address.')
