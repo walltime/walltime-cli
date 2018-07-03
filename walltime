@@ -597,6 +597,35 @@ program
     });
 
 program
+    .command('getorders')
+    .description('Retrieve information about orders.')
+    .action(function() {
+        if (checkForPassword() && checkForCredentials() && checkForUUID()) {
+            var network = getNetwork();
+            var uuid = ee.decrypt(password, localStorage.getItem(network + '.uuid'));
+            var addressC = ee.decrypt(password, localStorage.getItem(network + '.pub'));
+            var decryptedKey = ee.decrypt(password, localStorage.getItem(network + '.sec'));
+
+            var nonce = common.nonce();
+
+            common.callCommand(uuid, addressC, decryptedKey, nonce,
+                'get-orders', 'v1', {},
+                program.verbose, program.json, program.testnet)
+                .then(a => {
+                    if (program.verbose) {
+                        console.log();
+                        console.log(a.status.description);
+                        console.log();
+                    }
+
+                    if (a && a.status && a.status.description) {
+                        console.log(JSON.stringify(a.orders, null, 2));
+                    }
+                });
+        }
+    });
+
+program
     .command('newaddress [bech32] [currency] [amount]')
     .usage('[bech32] [currency] [amount]')
     .description('Generate a new crypto deposit address.')
