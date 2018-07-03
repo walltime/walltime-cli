@@ -964,6 +964,81 @@ program
         console.log('');
     });
 
+program
+    .command('withdraw <amount> <currency> <withdraw_address>')
+    .option('-n, --networkfee <networkfee>', 'set the network fee')
+    .usage('[-n <networkfee>] <amount> <currency> <withdraw_address>')
+    .description('Inform a new fiat deposit to our system.')
+    .action(function(amount, currency, withdraw_address, options) {
+        var error = false;
+
+        if (checkForPassword() && checkForCredentials() && checkForUUID()) {
+            if (!options.networkfee && currency == 'xbt') {
+                if (program.json) {
+                    console.log(JSON.stringify(JSON_ERROR));
+                } else {
+                    console.error('The network fee is necessary to xbt currency.');
+                }
+            } else if (currency == 'xbt') {
+                var parsedNetworkFee = parseFloat(options.networkfee);
+                if (parsedNetworkFee > common.NETWORK_XBT_FEE_HARD_LIMIT_MAX
+                    || parsedNetworkFee < common.NETWORK_XBT_FEE_HARD_LIMIT_MIN) {
+
+                    if (program.json) {
+                        console.log(JSON.stringify(JSON_ERROR));
+                    } else {
+                        console.error('The network fee is out of range. Min: '
+                            + common.NETWORK_XBT_FEE_HARD_LIMIT_MIN + ', Max: '
+                            + common.NETWORK_XBT_FEE_HARD_LIMIT_MAX);
+                    }
+
+                    error = true;
+                }
+            }
+
+            if (!error) {
+                var network = getNetwork();
+                var uuid = ee.decrypt(password, localStorage.getItem(network + '.uuid'));
+                var addressC = ee.decrypt(password, localStorage.getItem(network + '.pub'));
+                var decryptedKey = ee.decrypt(password, localStorage.getItem(network + '.sec'));
+
+                var nonce = common.nonce();
+
+                common.callCommand(uuid, addressC, decryptedKey, nonce,
+                    'request-withdraw', 'v1', {
+                        account_info: JSON.stringify({
+                            currency : currency,
+                            id : withdraw_address,
+                            label : '',
+                            last_used : '',
+                            type : 'old'
+                        }),
+                        amount : n2f(amount),
+                        force_fee : n2f(parseFloat(options.networkfee || '0'))
+                    }, program.verbose, program.json, program.testnet)
+                    .then(a => {
+                        if (program.verbose) {
+                            console.log();
+                        }
+
+                        if (a && a.status && a.status.description) {
+                            console.log(a.status.description);
+                        }
+                    });
+            }
+        }
+    })
+    .on('--help', function() {
+        console.log('');
+        console.log('You can get withdraw_address using the command "accountinfo".');
+        console.log('');
+        console.log('Example:');
+        console.log('');
+        console.log('\twalltime withdraw 20.03 brl 96dd3ca9009f93e960b1f351c8969efd710296fcd184f698fae9b502342c856e');
+        console.log('\twalltime withdraw -n 0.0001 0.001 xbt tb1qzt7vq2akzhxfmty7uh0k5rhuf579deyk89gdye');
+        console.log('');
+    });
+
 if (!process.argv.slice(2).length) {
     program.outputHelp();
 }

@@ -9,6 +9,8 @@ const JSON_ERROR = { status : { success : false }};
 
 module.exports = {
     DEPOSIT_HARD_LIMIT : 30000,
+    NETWORK_XBT_FEE_HARD_LIMIT_MAX : 0.001,
+    NETWORK_XBT_FEE_HARD_LIMIT_MIN : 0.0001,
     nonce : function() {
         return crypto.randomBytes(32).toString('hex');
     },
