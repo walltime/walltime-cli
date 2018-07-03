@@ -687,9 +687,17 @@ program
         }
 
         if (accounttype != 'cc' && accounttype != 'cp') {
-            console.error('On accounttype use cc for checking account and cp for savings account.');
+            if (program.json) {
+                console.log(JSON.stringify(JSON_ERROR));
+            } else {
+                console.error('On accounttype use cc for checking account and cp for savings account.');
+            }
         } else if (bankcode.length != 3) {
-            console.error('Bank code should have 3 digits. Complete with left-zeros when necessary.');
+            if (program.json) {
+                console.log(JSON.stringify(JSON_ERROR));
+            } else {
+                console.error('Bank code should have 3 digits. Complete with left-zeros when necessary.');
+            }
         } else {
             var accountInfo = {
                 account: accountnumber,
