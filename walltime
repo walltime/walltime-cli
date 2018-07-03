@@ -551,9 +551,10 @@ program
 
 program
     .command('accountstatement [daysago] [n_days] [minutes_offset]')
-    .usage('[daysago] [n_days] [minutes_offset]')
+    .option('-e, --sendbyemail', 'Send the statement by email.')
+    .usage('[-e] [daysago] [n_days] [minutes_offset]')
     .description('Retrieve account statement info.')
-    .action(function(daysago, n_days, minutes_offset) {
+    .action(function(daysago, n_days, minutes_offset, options) {
         if (checkForPassword() && checkForCredentials() && checkForUUID()) {
             var network = getNetwork();
             var uuid = ee.decrypt(password, localStorage.getItem(network + '.uuid'));
@@ -563,29 +564,37 @@ program
             var nonce = common.nonce();
 
             common.callCommand(uuid, addressC, decryptedKey, nonce,
-                'get-account-statement', 'v1', {
-                    days_ago : (daysago && parseInt(daysago)) || 30,
-                    n_days : (n_days && parseInt(n_days)) || 30,
+                options.sendbyemail ? 'get-full-account-statement-and-send-by-email' : 'get-account-statement',
+                'v1',
+                {
+                    days_ago : (daysago && parseInt(daysago)) || (options.sendbyemail ? 1825 : 30),
+                    n_days : (n_days && parseInt(n_days)) || (options.sendbyemail ? 1825 : 30),
                     minutes_offset : (minutes_offset && parseInt(minutes_offset)) || 0
                 },
                 program.verbose, program.json, program.testnet)
                 .then(a => {
-                    if (program.verbose) {
+                    if (program.verbose && a && a.status && a.status.description) {
                         console.log();
                         console.log(a.status.description);
                         console.log();
                     }
 
-                    if (a && a.status && a.status.description) {
-                        console.log(JSON.stringify(a.statement, null, 2));
+                    if (options.sendbyemail) {
+                        if (a && a.zip_password) {
+                            console.log('The password of the ZIP sent to your email is:', a.zip_password);
+                        }
+                    } else {
+                        if (a && a.statement) {
+                            console.log(JSON.stringify(a.statement, null, 2));
+                        }
                     }
                 });
         }
     })
     .on('--help', function() {
         console.log('');
-        console.log('daysago - How many days ago from now the statement will start. Default: 30');
-        console.log('n_days - How many days in total. Default: 30');
+        console.log('daysago - How many days ago from now the statement will start. Default: 30 or 1825 if -e is set.');
+        console.log('n_days - How many days in total. Default: 30 and 1825 if -e is set.');
         console.log('minutes_offset - Your timezone minutes offset. For example, Brazilian minutes offset is -180 and UTC is 0. Default is 0.');
         console.log('');
         console.log('Examples:');
@@ -593,6 +602,7 @@ program
         console.log('\twalltime accountstatement');
         console.log('\twalltime accountstatement 10 10');
         console.log('\twalltime accountstatement 10 10 -- -180');
+        console.log('\twalltime accountstatement -e 1825 1825');
         console.log('');
     });
 
