@@ -886,12 +886,24 @@ program
 
 program
     .command('informdeposit <amount> <currency> <receipt> <sourcebank> <destinationbank>')
-    .usage('<amount> <currency> <receipt> <sourcebank> <destinationbank>')
+    .option('-f, --force', 'force inform deposit above the hard limit')
+    .usage('[-f] <amount> <currency> <receipt> <sourcebank> <destinationbank>')
     .description('Inform a new deposit to our system.')
-    .action(function(amount, currency, receipt, sourcebank, destinationbank) {
+    .action(function(amount, currency, receipt, sourcebank, destinationbank, options) {
         if (checkForPassword() && checkForCredentials() && checkForUUID()) {
             if (sourcebank.length != 3 || destinationbank.length != 3) {
-                console.error('Bank code should have 3 digits. Complete with left-zeros when necessary.');
+                if (program.json) {
+                    console.log(JSON.stringify(JSON_ERROR));
+                } else {
+                    console.error('Bank code should have 3 digits. Complete with left-zeros when necessary.');
+                }
+            } if (parseFloat(amount) > common.DEPOSIT_HARD_LIMIT && !options.force) {
+                if (program.json) {
+                    console.log(JSON.stringify(JSON_ERROR));
+                } else {
+                    console.error('Deposits above ' + common.DEPOSIT_HARD_LIMIT
+                        + ' are unlikely to be approved. If you are sure about what you are doing, pass -f as option parameter.')
+                }
             } else {
                 var network = getNetwork();
                 var uuid = ee.decrypt(password, localStorage.getItem(network + '.uuid'));

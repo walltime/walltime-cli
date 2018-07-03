@@ -8,6 +8,7 @@ const DEFAULT_EXPIRATION_SEC = 60 * 60 * 3; // 3h
 const JSON_ERROR = { status : { success : false }};
 
 module.exports = {
+    DEPOSIT_HARD_LIMIT : 30000,
     nonce : function() {
         return crypto.randomBytes(32).toString('hex');
     },
