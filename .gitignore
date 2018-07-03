@@ -18,4 +18,7 @@ workspace.xml___jb_bak___
 # runtime
 db/
 *.log
+.env
 
+# dependency folder
+node_modules/

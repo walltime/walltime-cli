@@ -1,6 +1,6 @@
 {
   "name": "walltime-cli",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Walltime API CLI Interface",
   "main": "walltime",
   "scripts": {
