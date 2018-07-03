@@ -85,7 +85,7 @@ var getEnv = function() {
 };
 
 program
-    .version('1.0.0')
+    .version('1.0.2')
     .option('-t, --testnet', 'use testnet')
     .option('-j, --json', 'return in json format when possible')
     .option('-v, --verbose', 'verbose mode')
