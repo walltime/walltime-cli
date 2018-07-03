@@ -7,7 +7,7 @@ npm install walltime-cli -g
 
 ** Help
 #+BEGIN_SRC
-➜  walltime-cli git:(master) ./walltime                                                                      
+➜  walltime
 
   Usage:  [options] [command]
 

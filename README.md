@@ -21,7 +21,7 @@
 
 ## Help<a id="sec-1-2" name="sec-1-2"></a>
 
-    ➜  walltime-cli git:(master) ./walltime                                                                      
+    ➜  walltime
     
       Usage:  [options] [command]
     
