@@ -479,7 +479,7 @@ program
 
 program
     .command('accountinfo')
-    .description('Retrieve user account info.')
+    .description('Retrieve user account basic info.')
     .action(function() {
         if (checkForPassword() && checkForCredentials() && checkForUUID()) {
             var network = getNetwork();
