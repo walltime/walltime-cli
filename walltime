@@ -907,7 +907,7 @@ program
     .command('informdeposit <amount> <currency> <receipt> <sourcebank> <destinationbank>')
     .option('-f, --force', 'force inform deposit above the hard limit')
     .usage('[-f] <amount> <currency> <receipt> <sourcebank> <destinationbank>')
-    .description('Inform a new deposit to our system.')
+    .description('Inform a new fiat deposit to our system.')
     .action(function(amount, currency, receipt, sourcebank, destinationbank, options) {
         if (checkForPassword() && checkForCredentials() && checkForUUID()) {
             if (sourcebank.length != 3 || destinationbank.length != 3) {
@@ -956,7 +956,7 @@ program
     })
     .on('--help', function() {
         console.log('');
-        console.log('You can get withdraw_address using the command "accountinfo". The receipt param can be a URL to a image, PDF or can be a text with the transfer bank ID. Source and destination bank should have 3 digits.');
+        console.log('The receipt param can be a URL to a image, PDF or can be a text with the transfer bank ID. Source and destination bank should have 3 digits.');
         console.log('');
         console.log('Example:');
         console.log('');

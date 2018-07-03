@@ -26,11 +26,11 @@ module.exports = {
                     console.log('*** INTERRUPTED! You can try to get the server reply anytime:');
                     console.log('**********');
                     console.log('============================');
-                    console.log('walltime follow ' + (testnet ? '-t ' : '') + nonce);
+                    console.log('walltime follow -' + (testnet ? 't' : '') + 'v ' + nonce);
                     console.log('============================');
                     console.log('FAQ: Why this command is taking too long?');
                     console.log('-----------------------------------------');
-                    console.log('Some errors, specially related with repeated nonce, wrong credentials etc. Walltime server will simply ignore without return an error to the final user. It is possible that the command was lost, or it is in the queue to be processed (in case of high load on server). Each request has a timeout that can be defined by the user. In this version, the timeout is set hardcoded to 3h. You can use the command "follow" to try to get the asynchronous reply from server now or later.');
+                    console.log('Some errors, specially related with repeated nonce, wrong credentials etc. Walltime server will simply ignore without return an error to the final user. It is possible that the command was lost, or it is in the queue to be processed (in case of high load on server, or if the server is temporarily down). Each request has a timeout that can be defined by the user. In this version, the timeout is set hardcoded to 3h. You can use the command "follow" to try to get the asynchronous reply from server now or later.');
                     process.exit();
                 });
 
