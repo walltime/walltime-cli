@@ -2,12 +2,24 @@
 <h2>Table of Contents</h2>
 <div id="text-table-of-contents">
 <ul>
-<li><a href="#sec-1">1. Walltime CLI - Walltime Command Line Interface</a></li>
+<li><a href="#sec-1">1. Walltime CLI - Walltime Command Line Interface</a>
+<ul>
+<li><a href="#sec-1-1">1.1. Installation</a></li>
+<li><a href="#sec-1-2">1.2. Help</a></li>
+</ul>
+</li>
 </ul>
 </div>
 </div>
 
 # Walltime CLI - Walltime Command Line Interface<a id="sec-1" name="sec-1"></a>
+
+## Installation<a id="sec-1-1" name="sec-1-1"></a>
+
+    sudo apt-get install nodejs npm
+    npm install walltime-cli -g
+
+## Help<a id="sec-1-2" name="sec-1-2"></a>
 
     ➜  walltime-cli git:(master) ./walltime                                                                      
     

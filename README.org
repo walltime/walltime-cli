@@ -1,5 +1,11 @@
 * Walltime CLI - Walltime Command Line Interface
+** Installation
+#+BEGIN_SRC
+sudo apt-get install nodejs npm
+npm install walltime-cli -g
+#+END_SRC
 
+** Help
 #+BEGIN_SRC
 ➜  walltime-cli git:(master) ./walltime                                                                      
 
