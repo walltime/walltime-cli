@@ -89,16 +89,25 @@ var getEnv = function() {
 program
     .version(pck.version)
     .option('-t, --testnet', 'use testnet')
-    .option('-j, --json', 'return in json format when possible')
     .option('-v, --verbose', 'verbose mode')
+    .option('-j, --json', 'return in json format when possible')
     .description('Walltime CLI is the Walltime Digital Assets Exchange Command Line Interface. With this app, you can easily retrieve market info and manipulate your account.')
+    .usage('[-tvj] <command> [-h|<args>]')
     .on('--help', function() {
+        console.log('');
+        console.log('The following commands, use walltime <command> -h to see more details:');
+        console.log('');
+        console.log('    accountstatement');
+        console.log('    addbankaccount');
+        console.log('    createorder');
+        console.log('    informdeposit');
+        console.log('    withdraw');
         console.log('');
         console.log('Use walltime <command> -h to see more info about each command.');
 
         if (!password) {
             console.log('');
-            console.log('*** IMPORTANT ***');
+            console.log(colors.white.bold('*** IMPORTANT ***'));
             console.log('');
             console.log('To be able to use some commands, you have to set the system environment variable WT_SECRET to a secret that will be used to encrypt your credentials on disk. To keep it safe, it is recommended to clear this variable later.');
             console.log('');
@@ -110,7 +119,7 @@ program
             console.log('');
             console.log('\tset WT_SECRET=<yoursecret>');
         } else {
-            console.log('➜ $WT_SECRET is set, remember to cleanup this later.');
+            console.log(colors.green.bold('➜ $WT_SECRET is set, remember to cleanup this later.'));
         }
 
         console.log('');
@@ -552,7 +561,7 @@ program
     });
 
 program
-    .command('accountstatement [daysago] [n_days] [minutes_offset]')
+    .command('accountstatement [daysago] [n_days] [minutes_offset]', {noHelp: true})
     .option('-e, --sendbyemail', 'Send the statement by email.')
     .usage('[-e] [daysago] [n_days] [minutes_offset]')
     .description('Retrieve account statement info.')
@@ -686,7 +695,7 @@ program
     });
 
 program
-    .command('addbankaccount <currency> <agencynumber> <accountnumber> <accountdigit> <accounttype> <bankcode> <label> [extrainfo]')
+    .command('addbankaccount <currency> <agencynumber> <accountnumber> <accountdigit> <accounttype> <bankcode> <label> [extrainfo]', {noHelp: true})
     .usage('<currency> <agencynumber> [-d <agencydigit>] <accountnumber> <accountdigit> <cc|cp> <bankcode> <label> [extrainfo]')
     .description('Add a withdraw bank account.')
     .option('-d, --agencydigit <agencydigit>', 'OPTIONAL: Agency digit information. Most of Brazilian banks do not have this digit.')
@@ -807,7 +816,7 @@ program
     });
 
 program
-    .command('createorder <operation> <volumeinxbt> <priceinbrl>')
+    .command('createorder <operation> <volumeinxbt> <priceinbrl>', {noHelp: true})
     .usage('<operation> <buy|sell> <priceinbrl>')
     .description('Create an order.')
     .action(function(operation, volumeinxbt, priceinbrl) {
@@ -906,7 +915,7 @@ program
     });
 
 program
-    .command('informdeposit <amount> <currency> <receipt> <sourcebank> <destinationbank>')
+    .command('informdeposit <amount> <currency> <receipt> <sourcebank> <destinationbank>', {noHelp: true})
     .option('-f, --force', 'force inform deposit above the hard limit')
     .usage('[-f] <amount> <currency> <receipt> <sourcebank> <destinationbank>')
     .description('Inform a new fiat deposit to our system.')
@@ -967,7 +976,7 @@ program
     });
 
 program
-    .command('withdraw <amount> <currency> <withdraw_address>')
+    .command('withdraw <amount> <currency> <withdraw_address>', {noHelp: true})
     .option('-n, --networkfee <networkfee>', 'set the network fee')
     .usage('[-n <networkfee>] <amount> <currency> <withdraw_address>')
     .description('Inform a new fiat deposit to our system.')
@@ -1042,7 +1051,11 @@ program
     });
 
 if (!process.argv.slice(2).length) {
-    program.outputHelp();
+    program.outputHelp(processOutput);
+}
+
+function processOutput(txt) {
+    return txt;
 }
 
 program.parse(process.argv);
