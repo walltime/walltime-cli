@@ -14,6 +14,8 @@ const validator = require('validator');
 const crypto = require('crypto');
 const axios = require('axios');
 const n2f = require('num2fraction');
+const colors = require('colors');
+const pck = require('./package.json');
 const common = require('./common');
 
 var password = process.env.WT_SECRET;
@@ -85,7 +87,7 @@ var getEnv = function() {
 };
 
 program
-    .version('1.0.2')
+    .version(pck.version)
     .option('-t, --testnet', 'use testnet')
     .option('-j, --json', 'return in json format when possible')
     .option('-v, --verbose', 'verbose mode')
