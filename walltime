@@ -3,11 +3,7 @@
 'use strict';
 const program = require('commander');
 
-if (typeof localStorage === "undefined" || localStorage === null) {
-    var LocalStorage = require('node-localstorage').LocalStorage;
-    var localStorage = new LocalStorage('./db');
-}
-
+const LocalStorage = require('node-localstorage').LocalStorage;
 const btc = require('bitcore-lib');
 const ee = require('easy-encryption');
 const validator = require('validator');
@@ -15,12 +11,24 @@ const crypto = require('crypto');
 const axios = require('axios');
 const n2f = require('num2fraction');
 const colors = require('colors');
+const os = require('os');
+
 const pck = require('./package.json');
 const common = require('./common');
 
 var password = process.env.WT_SECRET;
 
 const JSON_ERROR = { status : { success : false }};
+
+var localStorage = function() {
+    var path = program.path;
+
+    if (!path) {
+        path = os.homedir() + '/.walltime'
+    }
+
+    return new LocalStorage(path);
+};
 
 var checkForPassword = function() {
     if (!password) {
@@ -35,7 +43,7 @@ var checkForPassword = function() {
 };
 
 var checkForCredentials = function() {
-    var hasCredentials = localStorage.getItem(getNetwork() + '.pub');
+    var hasCredentials = localStorage().getItem(getNetwork() + '.pub');
 
     if (!hasCredentials) {
         if (program.json) {
@@ -49,7 +57,7 @@ var checkForCredentials = function() {
 };
 
 var checkForUUID = function() {
-    var hasCredentials = localStorage.getItem(getNetwork() + '.uuid');
+    var hasCredentials = localStorage().getItem(getNetwork() + '.uuid');
 
     if (!hasCredentials) {
         if (program.json) {
@@ -91,6 +99,7 @@ program
     .option('-t, --testnet', 'use testnet')
     .option('-v, --verbose', 'verbose mode')
     .option('-j, --json', 'return in json format when possible')
+    .option('-p, --path <dbpath>', 'the database path, default is ~/.walltime')
     .description('Walltime CLI is the Walltime Digital Assets Exchange Command Line Interface. With this app, you can easily retrieve market info and manipulate your account.')
     .usage('[-tvj] <command> [-h|<args>]')
     .on('--help', function() {
@@ -135,14 +144,14 @@ program
         if (checkForPassword()) {
             var network = getNetwork();
 
-            if (localStorage.getItem(network + '.pub') && !options.force) {
+            if (localStorage().getItem(network + '.pub') && !options.force) {
                 if (program.json) {
                     console.log(JSON.stringify(JSON_ERROR));
                 } else {
                     console.error('You already have stored credentials. Use -f to force overwrite.');
                 }
             } else {
-                if (localStorage.getItem(network + '.pub') && !program.json) {
+                if (localStorage().getItem(network + '.pub') && !program.json) {
                     console.warn('[WARN] The credentials was overwritten!');
                 }
 
@@ -185,8 +194,8 @@ program
                     console.log(JSON.stringify(result));
                 }
 
-                localStorage.setItem(network + '.pub', ee.encrypt(password, address.toString()));
-                localStorage.setItem(network + '.sec', ee.encrypt(password, decryptedPrivateKey));
+                localStorage().setItem(network + '.pub', ee.encrypt(password, address.toString()));
+                localStorage().setItem(network + '.sec', ee.encrypt(password, decryptedPrivateKey));
             }
         }
     }).on('--help', function() {
@@ -209,14 +218,14 @@ program
         } else if (checkForPassword() && checkForCredentials()) {
             var network = getNetwork();
 
-            if (localStorage.getItem(network + '.uuid') && !program.json) {
+            if (localStorage().getItem(network + '.uuid') && !program.json) {
                 console.warn('[WARN] The UUID was overwritten!');
             }
 
             if (program.json) {
                 console.log(JSON.stringify({'success': true}));
             } else {
-                localStorage.setItem(network + '.uuid', ee.encrypt(password, uuid));
+                localStorage().setItem(network + '.uuid', ee.encrypt(password, uuid));
                 console.log('UUID stored!');
             }
         }
@@ -234,11 +243,11 @@ program
     .action(function(options) {
         if (checkForPassword() && checkForCredentials()) {
             var network = getNetwork();
-            var address = ee.decrypt(password, localStorage.getItem(network + '.pub'));
-            var uuid = localStorage.getItem(network + '.uuid') &&
-                ee.decrypt(password, localStorage.getItem(network + '.uuid'));
+            var address = ee.decrypt(password, localStorage().getItem(network + '.pub'));
+            var uuid = localStorage().getItem(network + '.uuid') &&
+                ee.decrypt(password, localStorage().getItem(network + '.uuid'));
 
-            var decryptedKey = ee.decrypt(password, localStorage.getItem(network + '.sec'));
+            var decryptedKey = ee.decrypt(password, localStorage().getItem(network + '.sec'));
 
             if (!program.json) {
                 console.log('');
@@ -285,14 +294,14 @@ program
         if (checkForPassword()) {
             var network = getNetwork();
 
-            if (localStorage.getItem(network + '.pub') && !options.force) {
+            if (localStorage().getItem(network + '.pub') && !options.force) {
                 if (program.json) {
                     console.log(JSON.stringify(JSON_ERROR));
                 } else {
                     console.error('You already have stored credentials. Use -f to force overwrite.');
                 }
             } else {
-                if (localStorage.getItem(network + '.pub') && !program.json) {
+                if (localStorage().getItem(network + '.pub') && !program.json) {
                     console.warn('[WARN] The credentials was overwritten!');
                 }
 
@@ -313,8 +322,8 @@ program
                     console.log(JSON.stringify(result));
                 }
 
-                localStorage.setItem(network + '.pub', ee.encrypt(password, address.toString()));
-                localStorage.setItem(network + '.sec', ee.encrypt(password, privkey));
+                localStorage().setItem(network + '.pub', ee.encrypt(password, address.toString()));
+                localStorage().setItem(network + '.sec', ee.encrypt(password, privkey));
             }
         }
     });
@@ -494,9 +503,9 @@ program
     .action(function() {
         if (checkForPassword() && checkForCredentials() && checkForUUID()) {
             var network = getNetwork();
-            var uuid = ee.decrypt(password, localStorage.getItem(network + '.uuid'));
-            var addressC = ee.decrypt(password, localStorage.getItem(network + '.pub'));
-            var decryptedKey = ee.decrypt(password, localStorage.getItem(network + '.sec'));
+            var uuid = ee.decrypt(password, localStorage().getItem(network + '.uuid'));
+            var addressC = ee.decrypt(password, localStorage().getItem(network + '.pub'));
+            var decryptedKey = ee.decrypt(password, localStorage().getItem(network + '.sec'));
 
             var nonce = common.nonce();
 
@@ -568,9 +577,9 @@ program
     .action(function(daysago, n_days, minutes_offset, options) {
         if (checkForPassword() && checkForCredentials() && checkForUUID()) {
             var network = getNetwork();
-            var uuid = ee.decrypt(password, localStorage.getItem(network + '.uuid'));
-            var addressC = ee.decrypt(password, localStorage.getItem(network + '.pub'));
-            var decryptedKey = ee.decrypt(password, localStorage.getItem(network + '.sec'));
+            var uuid = ee.decrypt(password, localStorage().getItem(network + '.uuid'));
+            var addressC = ee.decrypt(password, localStorage().getItem(network + '.pub'));
+            var decryptedKey = ee.decrypt(password, localStorage().getItem(network + '.sec'));
 
             var nonce = common.nonce();
 
@@ -624,9 +633,9 @@ program
     .action(function() {
         if (checkForPassword() && checkForCredentials() && checkForUUID()) {
             var network = getNetwork();
-            var uuid = ee.decrypt(password, localStorage.getItem(network + '.uuid'));
-            var addressC = ee.decrypt(password, localStorage.getItem(network + '.pub'));
-            var decryptedKey = ee.decrypt(password, localStorage.getItem(network + '.sec'));
+            var uuid = ee.decrypt(password, localStorage().getItem(network + '.uuid'));
+            var addressC = ee.decrypt(password, localStorage().getItem(network + '.pub'));
+            var decryptedKey = ee.decrypt(password, localStorage().getItem(network + '.sec'));
 
             var nonce = common.nonce();
 
@@ -661,9 +670,9 @@ program
 
         if (checkForPassword() && checkForCredentials() && checkForUUID()) {
             var network = getNetwork();
-            var uuid = ee.decrypt(password, localStorage.getItem(network + '.uuid'));
-            var address = ee.decrypt(password, localStorage.getItem(network + '.pub'));
-            var decryptedKey = ee.decrypt(password, localStorage.getItem(network + '.sec'));
+            var uuid = ee.decrypt(password, localStorage().getItem(network + '.uuid'));
+            var address = ee.decrypt(password, localStorage().getItem(network + '.pub'));
+            var decryptedKey = ee.decrypt(password, localStorage().getItem(network + '.sec'));
 
             var nonce = common.nonce();
 
@@ -737,9 +746,9 @@ program
 
             if (checkForPassword() && checkForCredentials() && checkForUUID()) {
                 var network = getNetwork();
-                var uuid = ee.decrypt(password, localStorage.getItem(network + '.uuid'));
-                var address = ee.decrypt(password, localStorage.getItem(network + '.pub'));
-                var decryptedKey = ee.decrypt(password, localStorage.getItem(network + '.sec'));
+                var uuid = ee.decrypt(password, localStorage().getItem(network + '.uuid'));
+                var address = ee.decrypt(password, localStorage().getItem(network + '.pub'));
+                var decryptedKey = ee.decrypt(password, localStorage().getItem(network + '.sec'));
 
                 var nonce = common.nonce();
 
@@ -785,9 +794,9 @@ program
 
         if (checkForPassword() && checkForCredentials() && checkForUUID()) {
             var network = getNetwork();
-            var uuid = ee.decrypt(password, localStorage.getItem(network + '.uuid'));
-            var addressC = ee.decrypt(password, localStorage.getItem(network + '.pub'));
-            var decryptedKey = ee.decrypt(password, localStorage.getItem(network + '.sec'));
+            var uuid = ee.decrypt(password, localStorage().getItem(network + '.uuid'));
+            var addressC = ee.decrypt(password, localStorage().getItem(network + '.pub'));
+            var decryptedKey = ee.decrypt(password, localStorage().getItem(network + '.sec'));
 
             var nonce = common.nonce();
 
@@ -822,9 +831,9 @@ program
     .action(function(operation, volumeinxbt, priceinbrl) {
         if (checkForPassword() && checkForCredentials() && checkForUUID()) {
             var network = getNetwork();
-            var uuid = ee.decrypt(password, localStorage.getItem(network + '.uuid'));
-            var addressC = ee.decrypt(password, localStorage.getItem(network + '.pub'));
-            var decryptedKey = ee.decrypt(password, localStorage.getItem(network + '.sec'));
+            var uuid = ee.decrypt(password, localStorage().getItem(network + '.uuid'));
+            var addressC = ee.decrypt(password, localStorage().getItem(network + '.pub'));
+            var decryptedKey = ee.decrypt(password, localStorage().getItem(network + '.sec'));
 
             if (operation != 'buy' && operation != 'sell') {
                 if (program.json) {
@@ -892,9 +901,9 @@ program
     .action(function(orderid) {
         if (checkForPassword() && checkForCredentials() && checkForUUID()) {
             var network = getNetwork();
-            var uuid = ee.decrypt(password, localStorage.getItem(network + '.uuid'));
-            var addressC = ee.decrypt(password, localStorage.getItem(network + '.pub'));
-            var decryptedKey = ee.decrypt(password, localStorage.getItem(network + '.sec'));
+            var uuid = ee.decrypt(password, localStorage().getItem(network + '.uuid'));
+            var addressC = ee.decrypt(password, localStorage().getItem(network + '.pub'));
+            var decryptedKey = ee.decrypt(password, localStorage().getItem(network + '.sec'));
 
             var nonce = common.nonce();
 
@@ -936,9 +945,9 @@ program
                 }
             } else {
                 var network = getNetwork();
-                var uuid = ee.decrypt(password, localStorage.getItem(network + '.uuid'));
-                var addressC = ee.decrypt(password, localStorage.getItem(network + '.pub'));
-                var decryptedKey = ee.decrypt(password, localStorage.getItem(network + '.sec'));
+                var uuid = ee.decrypt(password, localStorage().getItem(network + '.uuid'));
+                var addressC = ee.decrypt(password, localStorage().getItem(network + '.pub'));
+                var decryptedKey = ee.decrypt(password, localStorage().getItem(network + '.sec'));
 
                 var nonce = common.nonce();
 
@@ -1009,9 +1018,9 @@ program
 
             if (!error) {
                 var network = getNetwork();
-                var uuid = ee.decrypt(password, localStorage.getItem(network + '.uuid'));
-                var addressC = ee.decrypt(password, localStorage.getItem(network + '.pub'));
-                var decryptedKey = ee.decrypt(password, localStorage.getItem(network + '.sec'));
+                var uuid = ee.decrypt(password, localStorage().getItem(network + '.uuid'));
+                var addressC = ee.decrypt(password, localStorage().getItem(network + '.pub'));
+                var decryptedKey = ee.decrypt(password, localStorage().getItem(network + '.sec'));
 
                 var nonce = common.nonce();
 
