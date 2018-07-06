@@ -999,6 +999,8 @@ program
                 } else {
                     console.error('The network fee is necessary to xbt currency.');
                 }
+
+                error = true;
             } else if (currency == 'xbt') {
                 var parsedNetworkFee = parseFloat(options.networkfee);
                 if (parsedNetworkFee > common.NETWORK_XBT_FEE_HARD_LIMIT_MAX
