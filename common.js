@@ -157,6 +157,9 @@ function apiInfo(testnet) {
 
 function insertOnQueue(queueUrl, message) {
     var sqs = new AWS.SQS({region: 'us-east-1',
+        // The following credentials are PUBLIC, don't worry.
+        // They allow the world insert a message in our API queue.
+        // This is not a security flaw.
         accessKeyId: "AKIAJWV7ZINCVN3ZE6KQ",
         secretAccessKey: "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"});
 
