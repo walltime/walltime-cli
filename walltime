@@ -16,7 +16,7 @@ const os = require('os');
 const pck = require('./package.json');
 const common = require('./common');
 
-var password = process.env.WT_SECRET;
+var password = process.env.WT_LOCAL_STORAGE_PASSWORD || process.env.WT_SECRET;
 
 const JSON_ERROR = { status : { success : false }};
 
@@ -35,7 +35,7 @@ var checkForPassword = function() {
         if (program.json) {
             console.log(JSON.stringify(JSON_ERROR));
         } else {
-            console.error('Please, set the WT_SECRET env variable. It is required to encrypt/decrypt your credentials on disk.');
+            console.error('Please, set the WT_LOCAL_STORAGE_PASSWORD env variable. It is required to encrypt/decrypt your credentials on disk.');
         }
     }
 
@@ -118,17 +118,17 @@ program
             console.log('');
             console.log(colors.white.bold('*** IMPORTANT ***'));
             console.log('');
-            console.log('To be able to use some commands, you have to set the system environment variable WT_SECRET to a secret that will be used to encrypt your credentials on disk. To keep it safe, it is recommended to clear this variable later.');
+            console.log('To be able to use some commands, you have to set the system environment variable WT_LOCAL_STORAGE_PASSWORD to an arbitrary secret (defined by you) that will be used to encrypt your credentials on disk. To keep it safe, it is recommended to clear this variable later.');
             console.log('');
             console.log('On Linux, use:');
             console.log('');
-            console.log('\texport WT_SECRET=<yoursecret>');
+            console.log('\texport WT_LOCAL_STORAGE_PASSWORD=<yoursecret>');
             console.log('');
             console.log('On Windows, use:');
             console.log('');
-            console.log('\tset WT_SECRET=<yoursecret>');
+            console.log('\tset WT_LOCAL_STORAGE_PASSWORD=<yoursecret>');
         } else {
-            console.log(colors.green.bold('➜ $WT_SECRET is set, remember to cleanup this later.'));
+            console.log(colors.green.bold('➜ $WT_LOCAL_STORAGE_PASSWORD is set, remember to cleanup this later.'));
         }
 
         console.log('');
