@@ -61,4 +61,4 @@
         withdraw
     
     Use walltime <command> -h to see more info about each command.
-    ➜ $WT_SECRET is set, remember to cleanup this later.
+    ➜ $WT_LOCAL_STORAGE_PASSWORD is set, remember to cleanup this later.
