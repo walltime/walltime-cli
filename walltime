@@ -988,7 +988,7 @@ program
     .command('withdraw <amount> <currency> <withdraw_address>', {noHelp: true})
     .option('-n, --networkfee <networkfee>', 'set the network fee')
     .usage('[-n <networkfee>] <amount> <currency> <withdraw_address>')
-    .description('Inform a new fiat deposit to our system.')
+    .description('Request a withdraw from our system.')
     .action(function(amount, currency, withdraw_address, options) {
         var error = false;
 
