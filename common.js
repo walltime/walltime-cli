@@ -1,7 +1,7 @@
 const axios = require('axios');
 const AWS = require('aws-sdk');
 const crypto = require('crypto');
-const Message = require('bitcore-message');
+const Message = require('bitcoinjs-message');
 const btc = require('bitcore-lib');
 
 const DEFAULT_EXPIRATION_SEC = 60 * 60 * 3; // 3h
@@ -60,8 +60,8 @@ module.exports = {
                         'body': JSON.stringify(params)
                     });
 
-                    var message = new Message(data);
-                    var signature = message.sign(privateKey);
+                    var rawSignature = Message.sign(data, privateKey.toBuffer(), true);
+                    var signature = rawSignature.toString('base64');
 
                     var body = JSON.stringify({
                         'bitcoin-address': address,
