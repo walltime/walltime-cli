@@ -126,6 +126,7 @@ program
         console.log('    createorder');
         console.log('    informdeposit');
         console.log('    withdraw');
+        console.log('    buildtrades (usually unnecessary)');
         console.log('');
         console.log('Use walltime <command> -h to see more info about each command.');
 
@@ -383,6 +384,55 @@ program
     });
 
 program
+    .command('buildtrades', {noHelp: true})
+    .usage('<year> <month> <day> <hour> <source_symbol> <target_symbol>')
+    .description('Build information about last trades.')
+    .action(function(year, month, day, hour, sourceSymbol, targetSymbol) {
+        if (checkForPassword() && checkForCredentials() && checkForUUID()) {
+            var networkStr = getNetworkStr();
+            var uuid = ee.decrypt(password, localStorage().getItem(networkStr + '.uuid'));
+            var addressC = ee.decrypt(password, localStorage().getItem(networkStr + '.pub'));
+            var decryptedKey = ee.decrypt(password, localStorage().getItem(networkStr + '.sec'));
+
+            var nonce = common.nonce();
+
+            common.callCommand(uuid, addressC, decryptedKey, nonce,
+                'build-last-trades', 'v1', {
+                    'day' : parseInt(day),
+                    'hour' : parseInt(hour),
+                    'month' : parseInt(month),
+                    'source_symbol' : sourceSymbol,
+                    'target_symbol' : targetSymbol,
+                    'year' : parseInt(year)
+                }, program.verbose, program.json, program.testnet)
+                .then(a => {
+                    if (program.verbose) {
+                        console.log();
+                        console.log(a.status.description);
+                        console.log();
+                    }
+
+                    if (a && a.status && a.status.success) {
+                        console.log(a.url);
+                    }
+                });
+        }
+    })
+    .on('--help', function() {
+        console.log('');
+        console.log('  CAUTION: Usually unnecessary! See "walltime trades -h" first');
+        console.log('');
+        console.log('Example:');
+        console.log('');
+        console.log('\twalltime buildtrades 2018 06 29 13 brl xbt');
+        console.log('');
+        console.log('\t=> build trades between 2018-06-29 1PM and 2PM UTC and returns the URL where you should get the information. Note that this fn is async and it can have a delay between this call and the result on URL.');
+        console.log('');
+        console.log('Month, day and hour are left zero-padded with total of two digits (e.g. 02, 03, 04 etc.)');
+        console.log('');
+    });
+
+program
     .command('trades [year_month_day_hour|iso8601]')
     .usage('[year_month_day_hour|iso8601]')
     .description('Retrieve global last trades of a given interval of hour (UTC).')
@@ -441,6 +491,8 @@ program
         }
     })
     .on('--help', function() {
+        console.log('');
+        console.log('  Note: If you get HTTP 403 error (URL\'s Access Denied) you should call the command "buildtrades" first.');
         console.log('');
         console.log('Examples:');
         console.log('');
