@@ -1,7 +1,7 @@
 const axios = require('axios');
 const crypto = require('crypto');
 const Message = require('bitcoinjs-message');
-const btc = require('bitcore-lib');
+const btc = require('bitcoinjs-lib');
 
 const DEFAULT_EXPIRATION_SEC = 60 * 60 * 3; // 3h
 const JSON_ERROR = { status : { success : false }};
@@ -46,7 +46,7 @@ module.exports = {
                         console.log('Sending message to queue...');
                     }
 
-                    var privateKey = new btc.PrivateKey(decryptedKey);
+                    var keyPair = btc.ECPair.fromWIF(decryptedKey);
                     var expiration = new Date();
 
                     expiration.setSeconds(expiration.getSeconds() + DEFAULT_EXPIRATION_SEC);
@@ -59,7 +59,7 @@ module.exports = {
                         'body': JSON.stringify(params)
                     });
 
-                    var rawSignature = Message.sign(data, privateKey.toBuffer(), true);
+                    var rawSignature = Message.sign(data, keyPair.privateKey, true);
                     var signature = rawSignature.toString('base64');
 
                     var body = JSON.stringify({
