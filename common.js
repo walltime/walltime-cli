@@ -1,5 +1,4 @@
 const axios = require('axios');
-const AWS = require('aws-sdk');
 const crypto = require('crypto');
 const Message = require('bitcoinjs-message');
 const btc = require('bitcore-lib');
