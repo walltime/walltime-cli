@@ -22,22 +22,22 @@
 ## Help<a id="sec-1-2" name="sec-1-2"></a>
 
     ➜ walltime
-    
+
       Usage:  [-tvj] <command> [-h|<args>]
-    
+
       Walltime CLI is the Walltime Digital Assets Exchange Command Line Interface. With this app, you can easily retrieve market info and manipulate your account.
-    
+
       Options:
-    
+
         -V, --version                            output the version number
         -t, --testnet                            use testnet
         -v, --verbose                            verbose mode
         -j, --json                               return in json format when possible
         -p, --path <dbpath>                      the database path, default is ~/.walltime
         -h, --help                               output usage information
-    
+
       Commands:
-    
+
         init [options]                           Build new credentials.
         setup <useruuid>                         Setup your user UUID.
         show [options]                           Show your credentials (for backup).
@@ -51,14 +51,14 @@
         newaddress [bech32] [currency] [amount]  Generate a new crypto deposit address.
         addaddress <address> <currency> [label]  Add a new crypto exit address.
         trycancelorder <orderid>                 Try to cancel an order.
-    
+
     The following commands, use walltime <command> -h to see more details:
-    
+
         accountstatement
         addbankaccount
         createorder
         informdeposit
         withdraw
-    
+        buildtrades (usually unnecessary)
+
     Use walltime <command> -h to see more info about each command.
-    ➜ $WT_LOCAL_STORAGE_PASSWORD is set, remember to cleanup this later.
