@@ -176,10 +176,11 @@ program
                 }
 
                 const keyPair = btc.ECPair.makeRandom({ network: getNetwork() });
-                var privateKey = new keyPair.toWIF();
-                var address = keyPair.getAddress();
+                var publicKey = keyPair.publicKey;
+                var privateKey = keyPair.toWIF();
+                var {address} = btc.payments.p2pkh({ pubkey: publicKey });
 
-                var decryptedPrivateKey = privateKey.toWIF();
+                var decryptedPrivateKey = privateKey;
 
                 if (!program.json) {
                     console.log('');
@@ -244,6 +245,7 @@ program
             } else {
                 localStorage().setItem(networkStr + '.uuid', ee.encrypt(password, uuid));
                 console.log('UUID stored!');
+                console.log('\n*** IMPORTANT: Don\'t forget to make a backup of your credentials using the command walltime show -P')
             }
         }
     }).on('--help', function() {
@@ -271,7 +273,7 @@ program
                 console.log('Address:', '\n' + address);
 
                 if (options.privkey) {
-                    console.log('\nUnencrypted private key:', '\n' + decryptedKey);
+                    console.log('\nUnencrypted private key (wifprivkey):', '\n' + decryptedKey);
                 }
 
                 if (!uuid) {
@@ -323,7 +325,8 @@ program
                 }
 
                 const keyPair = btc.ECPair.fromWIF(privkey);
-                var address = keyPair.getAddress();
+                let publicKey = keyPair.publicKey;
+                let {address} = btc.payments.p2pkh({ pubkey: publicKey });
 
                 if (!program.json) {
                     console.log('');
@@ -628,7 +631,7 @@ program
                 console.log();
             }
 
-            console.log(a);
+            console.log(JSON.stringify(a.account, null, 2));
         }).catch(errorFn);
     })
     .on('--help', function() {
@@ -992,30 +995,33 @@ program
     });
 
 program
-    .command('informdeposit <amount> <currency> <receipt> <sourcebank> <destinationbank>', {noHelp: true})
+    .command('informdeposit <amount> <currency> <receipt>', {noHelp: true})
     .option('-f, --force', 'force inform deposit above the hard limit')
-    .usage('[-f] <amount> <currency> <receipt> <sourcebank> <destinationbank>')
+    .usage('[-f] <amount> <currency> <receipt>')
     .description('Inform a new fiat deposit to our system.')
-    .action(function(amount, currency, receipt, sourcebank, destinationbank, options) {
+    .action(function(amount, currency, receipt, options) {
         if (checkForPassword() && checkForCredentials() && checkForUUID()) {
-            if (sourcebank.length != 3 || destinationbank.length != 3) {
-                if (program.json) {
-                    console.log(JSON.stringify(JSON_ERROR));
-                } else {
-                    console.error('Bank code should have 3 digits. Complete with left-zeros when necessary.');
-                }
-            } if (parseFloat(amount) > common.DEPOSIT_HARD_LIMIT && !options.force) {
+            if (parseFloat(amount) > common.DEPOSIT_HARD_LIMIT && !options.force) {
                 if (program.json) {
                     console.log(JSON.stringify(JSON_ERROR));
                 } else {
                     console.error('Deposits above ' + common.DEPOSIT_HARD_LIMIT
                         + ' are unlikely to be approved. If you are sure about what you are doing, pass -f as option parameter.')
                 }
+            } else if (parseFloat(amount) < common.DEPOSIT_HARD_MINIMUM){
+                if (program.json) {
+                    console.log(JSON.stringify(JSON_ERROR));
+                } else {
+                    console.error('Deposits under ' + common.DEPOSIT_HARD_MINIMUM
+                        + ' are not permitted. Try again with at least the minimum amount.')
+                }
             } else {
                 var networkStr = getNetworkStr();
                 var uuid = ee.decrypt(password, localStorage().getItem(networkStr + '.uuid'));
                 var addressC = ee.decrypt(password, localStorage().getItem(networkStr + '.pub'));
                 var decryptedKey = ee.decrypt(password, localStorage().getItem(networkStr + '.sec'));
+                let sourcebank = '332';
+                let destinationbank = '332';
 
                 var nonce = common.nonce();
 
@@ -1043,13 +1049,13 @@ program
         }
     })
     .on('--help', function() {
-        console.log('');
-        console.log('The receipt param can be a URL to a image, PDF or can be a text with the transfer bank ID. Source and destination bank should have 3 digits.');
-        console.log('');
-        console.log('Example:');
-        console.log('');
-        console.log('\twalltime informdeposit 1000.23 brl "Transfer from Bradesco 296fcd184f698fae9b502342c8" 351 001');
-        console.log('');
+        console.log(`
+        The receipt param can be a URL to a image, PDF or can be a text with the transfer bank ID.
+
+        Example:
+
+                walltime informdeposit 1000.23 brl "Transfer from Bradesco 296fcd184f698fae9b502342c8"
+        `);
     });
 
 program

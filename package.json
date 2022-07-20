@@ -1,6 +1,6 @@
 {
   "name": "walltime-cli",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "description": "Walltime API CLI Interface",
   "main": "walltime",
   "scripts": {
@@ -20,7 +20,7 @@
   },
   "homepage": "https://github.com/walltime/walltime-cli#readme",
   "dependencies": {
-    "axios": "^0.18.0",
+    "axios": "^0.21.1",
     "bip38": "^2.0.2",
     "bitcoinjs-lib": "^5.1.7",
     "bitcoinjs-message": "^2.1.0",
