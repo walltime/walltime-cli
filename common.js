@@ -7,7 +7,8 @@ const DEFAULT_EXPIRATION_SEC = 60 * 60 * 3; // 3h
 const JSON_ERROR = { status : { success : false }};
 
 module.exports = {
-    DEPOSIT_HARD_LIMIT : 30000,
+    DEPOSIT_HARD_LIMIT : 500010,
+    DEPOSIT_HARD_MINIMUM : 20,
     NETWORK_XBT_FEE_HARD_LIMIT_MAX : 0.001,
     NETWORK_XBT_FEE_HARD_LIMIT_MIN : 0.0001,
     nonce : function() {
