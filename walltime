@@ -511,23 +511,27 @@ program
 
 program
     .command('orderbook [page]')
-    .usage('[page|-T|-r]')
+    .usage('[page|-T|-r|-F]')
     .option('-T, --totalpages', 'Show total of pages.')
     .option('-r, --round', 'Show current round.')
+    .option('-F, --float', 'Show result in float numbers.')
     .description('Retrieve order book information.')
     .action(function(page, options) {
         var env = getEnv();
+        const { totalpages, round, float } = options
 
         if (program.verbose) {
             console.log('Retrieving meta information...');
         }
 
         common.metaInfo(env).then(a => {
-            if (options.round) {
-                console.log(a.data.current_round);
+            const { current_round, order_book_pages, order_book_prefix,} = a.data;
+
+            if (round) {
+                console.log(current_round);
                 return null;
-            } else if (options.totalpages) {
-                console.log(a.data.order_book_pages);
+            } else if (totalpages) {
+                console.log(order_book_pages);
                 return null;
             } else {
                 if (!page) {
@@ -535,8 +539,8 @@ program
                 }
 
                 var url = 'https://s3.amazonaws.com/data-' + env + '-walltime-info/' + env + '/dynamic/'
-                        + a.data.order_book_prefix + '_r' + a.data.current_round
-                        + '_p' + page + '.json?now=' + common.nonce();
+                    + order_book_prefix + '_r' + current_round
+                    + '_p' + page + '.json?now=' + common.nonce();
 
                 if (program.verbose) {
                     console.log('GET ' + url);
@@ -546,17 +550,42 @@ program
                 return axios.get(url);
             }
         }).then(response => {
-                if (response && response.data) {
-                    console.log(response.data);
-                }
-            })
-        .catch(error => {
-            if (program.json) {
-                console.log(JSON.stringify(JSON_ERROR));
-            } else {
-                console.error(error);
+            if (response && response.data && !float) {
+                return console.log(response.data);
             }
-        });
+
+            let floatXBT_BRL = [];
+            let floatBRL_XBT = [];
+
+            for (let i = 0; i < response.data['xbt-brl'].length; i++) {
+                let firstValue = eval(response.data['xbt-brl'][i][0]);
+                let secondValue = eval(response.data['xbt-brl'][i][1]);
+
+                floatXBT_BRL.push([firstValue, secondValue]);
+            }
+
+            for (let i = 0; i < response.data['brl-xbt'].length; i++) {
+                let firstValue = eval(response.data['brl-xbt'][i][0]);
+                let secondValue = eval(response.data['brl-xbt'][i][1]);
+
+                floatBRL_XBT.push([firstValue, secondValue]);
+            }
+
+            let floatOrderBook = {
+                'timestamp': response.data.timestamp,
+                'xbt-brl': floatXBT_BRL,
+                'brl-xbt': floatBRL_XBT
+            };
+
+            console.log(floatOrderBook);
+        })
+            .catch(error => {
+                if (program.json) {
+                    console.log(JSON.stringify(JSON_ERROR));
+                } else {
+                    console.error(error);
+                }
+            });
     })
     .on('--help', function() {
         console.log('');
