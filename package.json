@@ -20,7 +20,7 @@
   },
   "homepage": "https://github.com/walltime/walltime-cli#readme",
   "dependencies": {
-    "axios": "^0.21.1",
+    "axios": "^1.6.0",
     "bip38": "^2.0.2",
     "bitcoinjs-lib": "^5.1.7",
     "bitcoinjs-message": "^2.1.0",
